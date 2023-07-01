@@ -1,0 +1,9 @@
+PyQt6
+openai
+langchain
+tiktoken
+pyttsx3
+pygame
+sounddevice
+Pillow
+requests
