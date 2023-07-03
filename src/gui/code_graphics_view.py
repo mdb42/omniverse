@@ -9,7 +9,7 @@ import importlib.resources
 SCENE_RECT_MULTIPLE = 2
 ZOOM_LIMIT = 5
 
-class MainGraphicsView(QtWidgets.QGraphicsView):
+class CodeGraphicsView(QtWidgets.QGraphicsView):
     present_mode = True
     draw_mode = False    
     code_mode = False
@@ -25,13 +25,17 @@ class MainGraphicsView(QtWidgets.QGraphicsView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)        
         self.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)    
         self.setMouseTracking(True)
-        self.main_scene = QGraphicsScene()
-        self.setScene(self.main_scene)
+
+        
+        self.code_scene = QGraphicsScene()
+        self.background_color = QColor(200, 200, 200, 0)
+        self.code_scene.setBackgroundBrush(self.background_color)
+        self.setScene(self.code_scene)
         self.reset_scene_rect()
         self.setViewportUpdateMode(QtWidgets.QGraphicsView.ViewportUpdateMode.FullViewportUpdate)
 
-        self.background_color = QColor(255, 255, 255, 255)
-        self.main_scene.setBackgroundBrush(self.background_color)
+        
+        # Go ahead and paint the background
         self.tool_color = QColor(0, 0, 0)        
         self.stroke_width = 1
         self.zoom = 0
@@ -197,7 +201,7 @@ class MainGraphicsView(QtWidgets.QGraphicsView):
         scale_factor = self.transform().m11()
         adjusted_width = (self.stroke_width + 1) / scale_factor
         self.current_path_item.setPen(QPen(self.tool_color, adjusted_width))
-        self.main_scene.addItem(self.current_path_item)
+        self.code_scene.addItem(self.current_path_item)
         self.drawn_items.append(self.current_path_item)
         self.redo_stack.clear()
         self.current_path_item_index = len(self.drawn_items) - 1
@@ -209,7 +213,7 @@ class MainGraphicsView(QtWidgets.QGraphicsView):
         scale_factor = self.transform().m11()
         adjusted_width = (self.stroke_width + 1) / scale_factor
         self.current_rect_item.setPen(QPen(self.tool_color, adjusted_width))
-        self.main_scene.addItem(self.current_rect_item)
+        self.code_scene.addItem(self.current_rect_item)
         self.drawn_items.append(self.current_rect_item)
         self.redo_stack.clear()
         self.current_path_item_index = len(self.drawn_items) - 1
@@ -220,7 +224,7 @@ class MainGraphicsView(QtWidgets.QGraphicsView):
         adjusted_width = (self.stroke_width + 1) / scale_factor
         self.current_ellipse_item.setPen(QPen(self.tool_color, adjusted_width))
         self.ellipse_start_pos = self.mapToScene(event.pos())
-        self.main_scene.addItem(self.current_ellipse_item)
+        self.code_scene.addItem(self.current_ellipse_item)
         self.drawn_items.append(self.current_ellipse_item)
         self.redo_stack.clear()
         self.current_path_item_index = len(self.drawn_items) - 1
@@ -231,7 +235,7 @@ class MainGraphicsView(QtWidgets.QGraphicsView):
         adjusted_width = (self.stroke_width + 1) / scale_factor
         self.current_line = QGraphicsLineItem(QLineF(self.line_start_point, self.line_start_point))        
         self.current_line.setPen(QPen(self.tool_color, adjusted_width))
-        self.main_scene.addItem(self.current_line)
+        self.code_scene.addItem(self.current_line)
         self.drawn_items.append(self.current_line)
         self.redo_stack.clear()
         self.current_path_item_index = len(self.drawn_items) - 1
@@ -244,7 +248,7 @@ class MainGraphicsView(QtWidgets.QGraphicsView):
                 should_erase = self.shouldEraseItem(item_to_remove, self.mapToScene(event.pos()))
                 print(f"Should erase: {should_erase}")
                 if should_erase:
-                    self.main_scene.removeItem(item_to_remove)
+                    self.code_scene.removeItem(item_to_remove)
                     self.drawn_items.remove(item_to_remove)
                     self.undo_stack.append({"item": item_to_remove, "action": "erased"})
                     self.redo_stack.clear()
@@ -298,12 +302,12 @@ class MainGraphicsView(QtWidgets.QGraphicsView):
             self.undoAvailable.emit(len(self.undo_stack) > 0)
             self.redoAvailable.emit(True)
             if action_to_undo["action"] == "drawn":
-                self.main_scene.removeItem(action_to_undo["item"])
+                self.code_scene.removeItem(action_to_undo["item"])
                 # Only remove from drawn_items if the action was "drawn"
                 self.drawn_items.remove(action_to_undo["item"])
                 self.redo_stack.append({"item": action_to_undo["item"], "action": "drawn"})
             elif action_to_undo["action"] == "erased":
-                self.main_scene.addItem(action_to_undo["item"])
+                self.code_scene.addItem(action_to_undo["item"])
                 # Add back to drawn_items if the action was "erased"
                 self.drawn_items.append(action_to_undo["item"])
                 self.redo_stack.append({"item": action_to_undo["item"], "action": "erased"})
@@ -314,12 +318,12 @@ class MainGraphicsView(QtWidgets.QGraphicsView):
             self.redoAvailable.emit(len(self.redo_stack) > 0)
             self.undoAvailable.emit(True)
             if action_to_redo["action"] == "drawn":
-                self.main_scene.addItem(action_to_redo["item"])
+                self.code_scene.addItem(action_to_redo["item"])
                 # Add back to drawn_items if the action was "drawn"
                 self.drawn_items.append(action_to_redo["item"])
                 self.undo_stack.append({"item": action_to_redo["item"], "action": "drawn"})
             elif action_to_redo["action"] == "erased":
-                self.main_scene.removeItem(action_to_redo["item"])
+                self.code_scene.removeItem(action_to_redo["item"])
                 # Only remove from drawn_items if the action was "erased"
                 self.drawn_items.remove(action_to_redo["item"])
                 self.undo_stack.append({"item": action_to_redo["item"], "action": "erased"})
@@ -399,14 +403,14 @@ class MainGraphicsView(QtWidgets.QGraphicsView):
             4 * SCENE_RECT_MULTIPLE * self.width(),
             4 * SCENE_RECT_MULTIPLE * self.height()
         )
-        self.main_scene.setSceneRect(initial_scene_rect)
+        self.code_scene.setSceneRect(initial_scene_rect)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.reset_scene_rect()
 
     def clear(self):
-        self.main_scene.clear()
+        self.code_scene.clear()
         self.drawn_items = deque()
         self.undo_stack = deque()
         self.redo_stack = deque()
@@ -454,7 +458,7 @@ class MainGraphicsView(QtWidgets.QGraphicsView):
         self.present_mode = True
     
     def advance(self, dt: float):
-        self.main_scene.advance()
+        self.code_scene.advance()
 
 
 

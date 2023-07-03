@@ -2,6 +2,8 @@ import pygame
 from sounddevice import InputStream
 import importlib.resources
 import io, os
+from src.audio.tts.tts_manager import TTSManager
+from src.audio.tts.pyttsx3_engine import Pyttsx3Engine
 
 class AudioManager:
     def __init__(self):
@@ -11,6 +13,13 @@ class AudioManager:
         self.stream = None  # TODO: initialize InputStream
         self.sound_effects = {}
         self.load_all_sound_effects()
+
+        self.tts_flag = False
+        self.stt_flag = False
+
+        self.pyttsx3 = Pyttsx3Engine()
+        self.tts_manager = TTSManager(self.pyttsx3)
+
         print("AudioManager initialized")
 
 

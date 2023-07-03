@@ -22,7 +22,7 @@ class LLMManager:
 
         self.protocols = ["Assistant", "Tutor", "Storyteller", "Persona"]
         self.current_protocol = "Assistant"
-        self.llm_models = ["gpt-3.5-turbo", "text-davinci-003", "gpt-4"]
+        self.llm_models = ["gpt-3.5-turbo", "text-davinci-003"]
         self.current_llm_model = "gpt-3.5-turbo"
 
         self.current_summary = ""
@@ -65,8 +65,6 @@ class LLMManager:
         self.session_prompt = PromptTemplate(input_variables=["chat_lines", "summary", "sentiment_analysis", "input", "ai_name", "user_name"],
                                              template=self.session_template)
 
-        self.test_llm = None
-        self.test_chain = None
         self.chat_llm = None
         self.chat_chain = None
         self.davinci_llm = None
@@ -78,7 +76,6 @@ class LLMManager:
     def set_protocol(self, protocol: str):
         self.current_protocol = protocol
         self.chat_chain.set_protocol(self.current_protocol)
-        self.test_chain.set_protocol(self.current_protocol)
         self.davinci_chain.set_protocol(self.current_protocol)
 
     def preprocessing(self, current_input: str):
@@ -91,16 +88,7 @@ class LLMManager:
     def generate_response(self):
         print("LLM Manager: Generating Response")
         print("Input: " + self.current_input)
-        if self.current_llm_model == "test":
-            print("Running Test Chain")
-            self.current_output = self.test_chain.run(input=self.current_input,
-                                                      ai_name=self.assistant_id,
-                                                      user_name=self.user_id,
-                                                      chat_lines=self.current_chat_history_string,
-                                                      sentiment_analysis=self.current_sentiment,
-                                                      summary=self.current_summary)
-            print("Test Chain Output: " + self.current_output)
-        elif self.current_llm_model == "gpt-3.5-turbo":
+        if self.current_llm_model == "gpt-3.5-turbo":
             print("Running Chat Chain")
             self.current_output = self.chat_chain.run(input=self.current_input,
                                                       ai_name=self.assistant_id,
@@ -156,15 +144,6 @@ class LLMManager:
 
     def setup_llms(self):
         print("LLM Manager: Setting Up LLMs")
-        self.test_llm = OpenAI(streaming=True,
-                                model_name="gpt-4",
-                                callback_manager=self.browser_callbacks["response"],
-                                verbose=True,
-                                temperature=self.temperature)
-        self.test_chain = DynamicChain(prompt=self.session_prompt,
-                                       llm=self.test_llm,
-                                       verbose=False)
-
         self.chat_llm = ChatOpenAI(streaming=True,
                                    callback_manager=self.browser_callbacks["response"],
                                    verbose=True,
