@@ -32,3 +32,12 @@ class ColorButton(QPushButton):
             self.current_color = color
             self.save_custom_colors()
             self.color_changed.emit(color)
+    
+    def get_color(self):
+        return self.current_color
+
+    def set_color(self, color):
+        self.setStyleSheet(f"background-color: {color.name()};")
+        self.current_color = color
+        self.save_custom_colors()
+        self.color_changed.emit(color)

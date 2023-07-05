@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'src\gui\user_creation_widget.ui'
+# Form implementation generated from reading ui file 'src\gui\windows\user_creation_window.ui'
 #
 # Created by: PyQt6 UI code generator 6.4.2
 #

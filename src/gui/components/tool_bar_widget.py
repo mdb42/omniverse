@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'src\gui\tool_bar_widget.ui'
+# Form implementation generated from reading ui file 'src\gui\components\tool_bar_widget.ui'
 #
 # Created by: PyQt6 UI code generator 6.4.2
 #
@@ -326,7 +326,7 @@ class Ui_Form(object):
         self.stroke_color_button.setToolTip(_translate("Form", "Stroke Color"))
         self.stroke_width_spin_box.setToolTip(_translate("Form", "Stroke Width"))
         self.label_2.setText(_translate("Form", "Code Mode Toolbar"))
-from src.gui.color_button import ColorButton
+from src.gui.components.color_button import ColorButton
 
 
 if __name__ == "__main__":

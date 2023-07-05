@@ -813,7 +813,7 @@
   <customwidget>
    <class>ColorButton</class>
    <extends>QPushButton</extends>
-   <header location="global">src/gui/color_button.h</header>
+   <header location="global">src/gui/components/color_button.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

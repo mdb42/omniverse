@@ -1,13 +1,32 @@
 import sys, os
 from local import constants
-from src.gui import omniverse_main
-from src.gui.login_widget import Ui_Form as LoginUI
-from src.gui.tool_bar_widget import Ui_Form as ToolBarUI
-from src.gui.user_creation_widget import Ui_Form as UserCreationUI
+from src.gui import omniverse_window
+from src.gui.windows.login_window import Ui_Form as LoginUI
+from src.gui.windows.user_creation_window import Ui_Form as UserCreationUI
+from src.gui.components.tool_bar_widget import Ui_Form as ToolBarUI
 
-import importlib.resources
+from importlib.resources import files
 from datetime import datetime
 from src.data.data_manager import DataManager
+
+"""
+Short Term:
+TODO: Create a full startup sequence that logs in a user or creates a new user, removing reliance on /local directory.
+TODO: Create a full shutdown sequence that saves all data and logs out the user if "Stay Online" setting not selected.
+TODO: Fix the LLM Manager's preprocessing functions.
+TODO: Implement brush fills for the main graphic's view's draw mode shape tools.
+TODO: Merge existing Present Mode and Draw Mode to be managed with more mouse events and gestures.
+TODO: Repurpose Present Mode for displaying simulation spaces like tabletop games and virtual worlds.
+TODO: Start developing QGraphicsItemGroups for LLM related widgets in the new code graphics view.
+
+Long Term:
+TODO: Build alternate chat interface with responses presented discretely for easier feedbacks.
+TODO: Create methods for saving and loading the view, model, or session.
+TODO: Redevelop the LLM Manager to manage multiple AI personae with dynamic prompt grounding.
+TODO: Implement more life-like voices to improve Text-to-Speech.
+TODO: Implement OpenAI's Whisper API for Speech-to-Text.
+
+"""
 
 from PyQt6 import QtWidgets
 from PyQt6.QtWidgets import QApplication
@@ -20,19 +39,24 @@ from src.art.art_manager import ArtManager
 
 from src.llms.llm_manager import LLMManager
 from langchain.callbacks.base import BaseCallbackManager
-from src.gui.streaming_browser_out import StreamingBrowserCallbackHandler
+from src.gui.callbacks.streaming_browser_out import StreamingBrowserCallbackHandler
+from src.gui.canvas_view.canvas_view import CanvasView
+from src.gui.code_view.code_view import CodeView
 
 
 TITLE = "Omniverse"
-VERSION = "0.0.2"
+VERSION = "0.0.3"
 FRAMES_PER_SECOND = 66
 
-class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
+class Omniverse(QtWidgets.QMainWindow, omniverse_window.Ui_MainWindow):
     def __init__(self, parent=None):
         super(Omniverse, self).__init__(parent)
         QtWidgets.QMainWindow.__init__(self, parent=parent)
         self.setupUi(self)
         self.setWindowTitle(f"{TITLE} {VERSION}")
+
+        self.canvas_view = CanvasView(parent=self)
+        self.code_view = CodeView(parent=self)
 
         self.application_icon_pixmap = QPixmap()
         self.tts_on_button_icon_pixmap = QPixmap()
@@ -113,7 +137,7 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
 
     def advance(self):
         delta_time = self.animation_timer.interval() / 1000.0
-        self.main_graphics_view.advance(delta_time)
+        self.canvas_view.advance(delta_time)
   
     def generate_response(self):
         self.current_input = self.input_text_editor.toPlainText().rstrip()
@@ -140,8 +164,6 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
     def postprocessing(self):
         """ Perform all postprocessing events, ending with the LLM postprocessor."""
         print("Postprocessing Model Output")
-        # if self.tts_checkbox.isChecked():
-        #     self.tts_manager.play_speech_async(self.current_response)
         if self.audio_manager.tts_flag:
             self.audio_manager.tts_manager.play_speech_async(self.current_response)
 
@@ -163,33 +185,27 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
 
     def set_present_mode(self):
         self.toolbar_ui.mode_tools_stacked_widget.setCurrentIndex(0)
-        self.main_graphics_view.present_mode = True
-        self.main_graphics_view.draw_mode = not self.main_graphics_view.present_mode
-        self.main_graphics_view.code_mode = not self.main_graphics_view.present_mode
-        self.toolbar_ui.draw_button.setChecked(self.main_graphics_view.draw_mode)
-        self.toolbar_ui.present_button.setChecked(self.main_graphics_view.present_mode)
-        self.toolbar_ui.code_button.setChecked(self.main_graphics_view.code_mode)
-        self.centtral_stacked_widget.setCurrentIndex(0)
+        self.canvas_view.set_present_mode()
+        self.toolbar_ui.draw_button.setChecked(self.canvas_view.draw_mode)
+        self.toolbar_ui.present_button.setChecked(self.canvas_view.present_mode)
+        self.toolbar_ui.code_button.setChecked(self.canvas_view.hidden_mode)
+        self.central_stacked_widget.setCurrentIndex(0)
 
     def set_draw_mode(self):
         self.toolbar_ui.mode_tools_stacked_widget.setCurrentIndex(1)
-        self.main_graphics_view.draw_mode = True
-        self.main_graphics_view.present_mode = not self.main_graphics_view.draw_mode
-        self.main_graphics_view.code_mode = not self.main_graphics_view.draw_mode
-        self.toolbar_ui.draw_button.setChecked(self.main_graphics_view.draw_mode)
-        self.toolbar_ui.present_button.setChecked(self.main_graphics_view.present_mode)
-        self.toolbar_ui.code_button.setChecked(self.main_graphics_view.code_mode)        
-        self.centtral_stacked_widget.setCurrentIndex(0)     
+        self.canvas_view.set_draw_mode()
+        self.toolbar_ui.draw_button.setChecked(self.canvas_view.draw_mode)
+        self.toolbar_ui.present_button.setChecked(self.canvas_view.present_mode)
+        self.toolbar_ui.code_button.setChecked(self.canvas_view.hidden_mode)        
+        self.central_stacked_widget.setCurrentIndex(0)     
     
     def set_code_mode(self):
         self.toolbar_ui.mode_tools_stacked_widget.setCurrentIndex(2)
-        self.main_graphics_view.code_mode = True
-        self.main_graphics_view.present_mode = not self.main_graphics_view.code_mode
-        self.main_graphics_view.draw_mode = not self.main_graphics_view.code_mode
-        self.toolbar_ui.code_button.setChecked(self.main_graphics_view.code_mode)
-        self.toolbar_ui.present_button.setChecked(self.main_graphics_view.present_mode)
-        self.toolbar_ui.draw_button.setChecked(self.main_graphics_view.draw_mode)        
-        self.centtral_stacked_widget.setCurrentIndex(1)
+        self.canvas_view.set_hidden_mode()
+        self.toolbar_ui.code_button.setChecked(self.canvas_view.hidden_mode)
+        self.toolbar_ui.present_button.setChecked(self.canvas_view.present_mode)
+        self.toolbar_ui.draw_button.setChecked(self.canvas_view.draw_mode)        
+        self.central_stacked_widget.setCurrentIndex(1)
     
     def toggle_tts_mode(self):
         self.audio_manager.tts_flag = not self.audio_manager.tts_flag
@@ -204,17 +220,32 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
             self.stt_mode_button.setIcon(QIcon(self.stt_on_button_icon_pixmap))
         else:
             self.stt_mode_button.setIcon(QIcon(self.stt_off_button_icon_pixmap))
-       
-    def initialize_gui(self):
-        # Setup the application icon
-        icon_data = importlib.resources.read_binary("resources.icons", "application-icon.ico")
-        icon_image = QImage.fromData(icon_data)
-        self.application_icon_pixmap = QPixmap.fromImage(icon_image)
-        self.setWindowIcon(QIcon(self.application_icon_pixmap))
 
-        # Setup the various widgets
+    def load_icon(self, package, resource):
+        resource_path = files(package) / resource
+        with open(resource_path, 'rb') as file:
+            icon_data = file.read()
+        icon_image = QImage.fromData(icon_data)
+        return QPixmap.fromImage(icon_image)
+
+
+    def initialize_gui(self):
+
+        # Setup the application icon
+        self.application_icon_pixmap = self.load_icon("resources.icons", "application-icon.ico")
+        self.setWindowIcon(QIcon(self.application_icon_pixmap))
         
+        # Add the main graphics view to the main grid widget's layout
+        self.main_grid_widget.layout().addWidget(self.canvas_view)
+        # We need to ensure the code view is added to the code view vertical widget in the top row, above existing widgets
+        self.code_view_vertical_widget.layout().insertWidget(0, self.code_view)
+        self.code_view_vertical_widget.layout().setStretch(1, 1)
+        #We need to make sure the stretch applies after resizing
+        self.code_view_vertical_widget.layout().setStretchFactor(self.code_view, 1)
+        
+        # Setup the various widgets        
         self.toolbar_ui.setupUi(self.toolbar_widget)
+        self.toolbar_ui.fill_color_button.set_color(self.canvas_view.fill_color)
         self.toolBar.addWidget(self.toolbar_widget)
         self.toolBar.setMovable(False)
         self.toolBar.setFloatable(False)
@@ -225,122 +256,49 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
         self.login_widget.show()
 
         self.user_creation_ui.setupUi(self.user_creation_widget)
-        # We need to set it so that the widget has no minimize or maximize buttons
         self.user_creation_widget.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
         self.user_creation_widget.setWindowIcon(QIcon(self.application_icon_pixmap))
         self.user_creation_widget.show()
 
         # Setup the dynamic components
+        self.tts_on_button_icon_pixmap = self.load_icon("resources.icons", "button-tts-on.ico")
+        self.tts_off_button_icon_pixmap = self.load_icon("resources.icons", "button-tts-off.ico")
+        self.stt_on_button_icon_pixmap = self.load_icon("resources.icons", "button-stt-on.ico")
+        self.stt_off_button_icon_pixmap = self.load_icon("resources.icons", "button-stt-off.ico")
+        self.user_button_icon_pixmap = self.load_icon("resources.icons", "button-user.ico")
 
-        tts_on_button_icon_data = importlib.resources.read_binary("resources.icons", "button-tts-on.ico")
-        tts_on_button_icon_image = QImage.fromData(tts_on_button_icon_data)
-        self.tts_on_button_icon_pixmap = QPixmap.fromImage(tts_on_button_icon_image)
-
-        tts_off_button_icon_data = importlib.resources.read_binary("resources.icons", "button-tts-off.ico")
-        tts_off_button_icon_image = QImage.fromData(tts_off_button_icon_data)
-        self.tts_off_button_icon_pixmap = QPixmap.fromImage(tts_off_button_icon_image)
+        # Set the starting icons for the dynamic components
         self.tts_mode_button.setIcon(QIcon(self.tts_off_button_icon_pixmap))
-
-        stt_on_button_icon_data = importlib.resources.read_binary("resources.icons", "button-stt-on.ico")
-        stt_on_button_icon_image = QImage.fromData(stt_on_button_icon_data)
-        self.stt_on_button_icon_pixmap = QPixmap.fromImage(stt_on_button_icon_image)
-
-        stt_off_button_icon_data = importlib.resources.read_binary("resources.icons", "button-stt-off.ico")
-        stt_off_button_icon_image = QImage.fromData(stt_off_button_icon_data)
-        self.stt_off_button_icon_pixmap = QPixmap.fromImage(stt_off_button_icon_image)
         self.stt_mode_button.setIcon(QIcon(self.stt_off_button_icon_pixmap))
-
-        stt_on_button_icon_data = importlib.resources.read_binary("resources.icons", "button-stt-on.ico")
-        stt_on_button_icon_image = QImage.fromData(stt_on_button_icon_data)
-        self.stt_on_button_icon_pixmap = QPixmap.fromImage(stt_on_button_icon_image)
-
-        user_button_icon_data = importlib.resources.read_binary("resources.icons", "button-user.ico")
-        user_button_icon_image = QImage.fromData(user_button_icon_data)
-        self.user_button_icon_pixmap = QPixmap.fromImage(user_button_icon_image)
         self.toolbar_ui.user_button.setIcon(QIcon(self.user_button_icon_pixmap))
         
         # Setup static components
+        self.generate_text_button.setIcon(QIcon(self.load_icon("resources.icons", "button-generate-text.ico")))
+        self.generate_image_button.setIcon(QIcon(self.load_icon("resources.icons", "button-generate-image.ico")))
 
         # Setup static toolbar components
-        present_button_icon_data = importlib.resources.read_binary("resources.icons", "mode-present.ico")
-        present_button_icon_image = QImage.fromData(present_button_icon_data)
-        self.toolbar_ui.present_button.setIcon(QIcon(QPixmap.fromImage(present_button_icon_image)))
-
-        draw_button_icon_data = importlib.resources.read_binary("resources.icons", "mode-draw.ico")
-        draw_button_icon_image = QImage.fromData(draw_button_icon_data)
-        self.toolbar_ui.draw_button.setIcon(QIcon(QPixmap.fromImage(draw_button_icon_image)))
-
-        code_button_icon_data = importlib.resources.read_binary("resources.icons", "mode-code.ico")
-        code_button_icon_image = QImage.fromData(code_button_icon_data)
-        self.toolbar_ui.code_button.setIcon(QIcon(QPixmap.fromImage(code_button_icon_image)))
-
-        pencil_button_icon_data = importlib.resources.read_binary("resources.icons", "tool-pencil.ico")
-        pencil_button_icon_image = QImage.fromData(pencil_button_icon_data)
-        self.toolbar_ui.pencil_button.setIcon(QIcon(QPixmap.fromImage(pencil_button_icon_image)))
-
-        erase_button_icon_data = importlib.resources.read_binary("resources.icons", "tool-eraser.ico")
-        erase_button_icon_image = QImage.fromData(erase_button_icon_data)
-        self.toolbar_ui.erase_button.setIcon(QIcon(QPixmap.fromImage(erase_button_icon_image)))
-        
-        line_button_icon_data = importlib.resources.read_binary("resources.icons", "tool-line.ico")
-        line_button_icon_image = QImage.fromData(line_button_icon_data)
-        self.toolbar_ui.line_button.setIcon(QIcon(QPixmap.fromImage(line_button_icon_image)))
-        
-        ellipse_button_icon_data = importlib.resources.read_binary("resources.icons", "tool-circle.ico")
-        ellipse_button_icon_image = QImage.fromData(ellipse_button_icon_data)
-        self.toolbar_ui.ellipse_button.setIcon(QIcon(QPixmap.fromImage(ellipse_button_icon_image)))
-
-        rectangle_button_icon_data = importlib.resources.read_binary("resources.icons", "tool-square.ico")
-        rectangle_button_icon_image = QImage.fromData(rectangle_button_icon_data)
-        self.toolbar_ui.rectangle_button.setIcon(QIcon(QPixmap.fromImage(rectangle_button_icon_image)))
-
-        undo_button_icon_data = importlib.resources.read_binary("resources.icons", "button-undo.ico")
-        undo_button_icon_image = QImage.fromData(undo_button_icon_data)
-        self.toolbar_ui.undo_button.setIcon(QIcon(QPixmap.fromImage(undo_button_icon_image)))
-
-        redo_button_icon_data = importlib.resources.read_binary("resources.icons", "button-redo.ico")
-        redo_button_icon_image = QImage.fromData(redo_button_icon_data)
-        self.toolbar_ui.redo_button.setIcon(QIcon(QPixmap.fromImage(redo_button_icon_image)))
-
-        new_button_icon_data = importlib.resources.read_binary("resources.icons", "button-new.ico")
-        new_button_icon_image = QImage.fromData(new_button_icon_data)
-        self.toolbar_ui.new_button.setIcon(QIcon(QPixmap.fromImage(new_button_icon_image)))
-
-        open_button_icon_data = importlib.resources.read_binary("resources.icons", "button-open.ico")
-        open_button_icon_image = QImage.fromData(open_button_icon_data)
-        self.toolbar_ui.open_button.setIcon(QIcon(QPixmap.fromImage(open_button_icon_image)))
-
-        save_button_icon_data = importlib.resources.read_binary("resources.icons", "button-save.ico")
-        save_button_icon_image = QImage.fromData(save_button_icon_data)
-        self.toolbar_ui.save_button.setIcon(QIcon(QPixmap.fromImage(save_button_icon_image)))
+        self.toolbar_ui.present_button.setIcon(QIcon(self.load_icon("resources.icons", "mode-present.ico")))
+        self.toolbar_ui.draw_button.setIcon(QIcon(self.load_icon("resources.icons", "mode-draw.ico")))
+        self.toolbar_ui.code_button.setIcon(QIcon(self.load_icon("resources.icons", "mode-code.ico")))
+        self.toolbar_ui.pencil_button.setIcon(QIcon(self.load_icon("resources.icons", "tool-pencil.ico")))
+        self.toolbar_ui.erase_button.setIcon(QIcon(self.load_icon("resources.icons", "tool-eraser.ico")))
+        self.toolbar_ui.line_button.setIcon(QIcon(self.load_icon("resources.icons", "tool-line.ico")))
+        self.toolbar_ui.ellipse_button.setIcon(QIcon(self.load_icon("resources.icons", "tool-circle.ico")))
+        self.toolbar_ui.rectangle_button.setIcon(QIcon(self.load_icon("resources.icons", "tool-square.ico")))
+        self.toolbar_ui.undo_button.setIcon(QIcon(self.load_icon("resources.icons", "button-undo.ico")))
+        self.toolbar_ui.redo_button.setIcon(QIcon(self.load_icon("resources.icons", "button-redo.ico")))
+        self.toolbar_ui.new_button.setIcon(QIcon(self.load_icon("resources.icons", "button-new.ico")))
+        self.toolbar_ui.open_button.setIcon(QIcon(self.load_icon("resources.icons", "button-open.ico")))
+        self.toolbar_ui.save_button.setIcon(QIcon(self.load_icon("resources.icons", "button-save.ico")))
 
         # Setup static login widget components
-        github_icon_data = importlib.resources.read_binary("resources.icons", "github-icon.ico")
-        github_icon_image = QImage.fromData(github_icon_data)
-        self.github_icon_pixmap = QPixmap.fromImage(github_icon_image)
-        self.login_ui.github_button.setIcon(QIcon(self.github_icon_pixmap))
-
-        discord_icon_data = importlib.resources.read_binary("resources.icons", "discord-icon.ico")
-        discord_icon_image = QImage.fromData(discord_icon_data)
-        self.discord_icon_pixmap = QPixmap.fromImage(discord_icon_image)
-        self.login_ui.discord_button.setIcon(QIcon(self.discord_icon_pixmap))
-
-        twitter_icon_data = importlib.resources.read_binary("resources.icons", "twitter-icon.ico")
-        twitter_icon_image = QImage.fromData(twitter_icon_data)
-        self.twitter_icon_pixmap = QPixmap.fromImage(twitter_icon_image)
-        self.login_ui.twitter_button.setIcon(QIcon(self.twitter_icon_pixmap))
-
-        generate_text_button_icon_data = importlib.resources.read_binary("resources.icons", "button-generate-text.ico")
-        generate_text_button_icon_image = QImage.fromData(generate_text_button_icon_data)
-        self.generate_text_button.setIcon(QIcon(QPixmap.fromImage(generate_text_button_icon_image)))
-
-        generate_image_button_icon_data = importlib.resources.read_binary("resources.icons", "button-generate-image.ico")
-        generate_image_button_icon_image = QImage.fromData(generate_image_button_icon_data)
-        self.generate_image_button.setIcon(QIcon(QPixmap.fromImage(generate_image_button_icon_image)))
+        self.login_ui.twitter_button.setIcon(QIcon(self.load_icon("resources.icons", "twitter-icon.ico")))
+        self.login_ui.discord_button.setIcon(QIcon(self.load_icon("resources.icons", "discord-icon.ico")))
+        self.login_ui.github_button.setIcon(QIcon(self.load_icon("resources.icons", "github-icon.ico")))
 
         # Connect signals to methods
-        self.main_graphics_view.undoAvailable.connect(self.toolbar_ui.undo_button.setEnabled)
-        self.main_graphics_view.redoAvailable.connect(self.toolbar_ui.redo_button.setEnabled)
+        self.canvas_view.undoAvailable.connect(self.toolbar_ui.undo_button.setEnabled)
+        self.canvas_view.redoAvailable.connect(self.toolbar_ui.redo_button.setEnabled)
         self.tts_mode_button.clicked.connect(self.toggle_tts_mode)
         self.stt_mode_button.clicked.connect(self.toggle_stt_mode)
         self.generate_text_button.clicked.connect(self.generate_response)
@@ -348,16 +306,16 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
         self.toolbar_ui.present_button.clicked.connect(self.set_present_mode)
         self.toolbar_ui.draw_button.clicked.connect(self.set_draw_mode)
         self.toolbar_ui.code_button.clicked.connect(self.set_code_mode)
-        self.toolbar_ui.pencil_button.clicked.connect(self.main_graphics_view.set_pencil_tool)
-        self.toolbar_ui.erase_button.clicked.connect(self.main_graphics_view.set_erase_tool)
-        self.toolbar_ui.line_button.clicked.connect(self.main_graphics_view.set_line_tool)
-        self.toolbar_ui.ellipse_button.clicked.connect(self.main_graphics_view.set_ellipse_tool)
-        self.toolbar_ui.rectangle_button.clicked.connect(self.main_graphics_view.set_rectangle_tool)
-        self.toolbar_ui.undo_button.clicked.connect(self.main_graphics_view.undo)
-        self.toolbar_ui.redo_button.clicked.connect(self.main_graphics_view.redo)
-        self.toolbar_ui.new_button.clicked.connect(self.main_graphics_view.clear)
-        self.toolbar_ui.stroke_color_button.color_changed.connect(self.main_graphics_view.set_tool_color)        
-        self.toolbar_ui.stroke_width_spin_box.valueChanged.connect(self.main_graphics_view.set_stroke_width)
+        self.toolbar_ui.pencil_button.clicked.connect(self.canvas_view.set_pencil_tool)
+        self.toolbar_ui.erase_button.clicked.connect(self.canvas_view.set_erase_tool)
+        self.toolbar_ui.line_button.clicked.connect(self.canvas_view.set_line_tool)
+        self.toolbar_ui.ellipse_button.clicked.connect(self.canvas_view.set_ellipse_tool)
+        self.toolbar_ui.rectangle_button.clicked.connect(self.canvas_view.set_rectangle_tool)
+        self.toolbar_ui.undo_button.clicked.connect(self.canvas_view.undo)
+        self.toolbar_ui.redo_button.clicked.connect(self.canvas_view.redo)
+        self.toolbar_ui.new_button.clicked.connect(self.canvas_view.clear)
+        self.toolbar_ui.stroke_color_button.color_changed.connect(self.canvas_view.set_tool_color)        
+        self.toolbar_ui.stroke_width_spin_box.valueChanged.connect(self.canvas_view.set_stroke_width)
         self.toolbar_ui.user_button.clicked.connect(self.user_button_clicked)
         self.login_ui.github_button.clicked.connect(self.github_button_clicked)
         self.login_ui.discord_button.clicked.connect(self.discord_button_clicked)
@@ -370,4 +328,6 @@ if __name__ == "__main__":
     window = Omniverse()
     window.show()
     sys.exit(app.exec())
+
+
     
