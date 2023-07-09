@@ -1,7 +1,7 @@
 from collections import deque
 from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtGui import QPixmap, QImage, QCursor, QPen, QColor
-from PyQt6.QtWidgets import QGraphicsScene
+from PyQt6.QtGui import QPixmap, QImage, QCursor, QPen, QBrush, QColor
+from PyQt6.QtWidgets import QGraphicsScene, QGraphicsPixmapItem
 from PyQt6.QtCore import Qt
 from importlib.resources import files
 from src.gui.canvas_view.pencil_tool import PencilTool
@@ -9,6 +9,7 @@ from src.gui.canvas_view.eraser_tool import EraserTool
 from src.gui.canvas_view.line_tool import LineTool
 from src.gui.canvas_view.ellipse_tool import EllipseTool
 from src.gui.canvas_view.rect_tool import RectTool
+from src.gui.canvas_view.image_tool import ImageTool
 
 
 # Constants
@@ -16,11 +17,10 @@ SCENE_RECT_MULTIPLE = 2
 ZOOM_LIMIT = 5
 
 class CanvasView(QtWidgets.QGraphicsView):
-    present_mode = True
-    draw_mode = False    
-    hidden_mode = False
 
     animating = True
+
+    subject_pixmap = None
 
     background_color = QColor(200, 200, 200, 0)
     fill_color = QColor(255, 255, 255, 0)
@@ -52,9 +52,12 @@ class CanvasView(QtWidgets.QGraphicsView):
                            EraserTool(self.load_cursor("tool-eraser.ico", 8, 13)), 
                            LineTool(self.load_cursor("tool-misc.ico", 8, 8)),
                            EllipseTool(self.load_cursor("tool-misc.ico", 8, 8)), 
-                           RectTool(self.load_cursor("tool-misc.ico", 8, 8))]
+                           RectTool(self.load_cursor("tool-misc.ico", 8, 8)),
+                           ImageTool(self.load_cursor("tool-misc.ico", 8, 8))]
 
         self.tool_index = 0
+        self.setCursor(self.tools[self.tool_index].cursor)
+
         self.current_item = None
 
         self.drawn_items = deque()
@@ -62,59 +65,84 @@ class CanvasView(QtWidgets.QGraphicsView):
         self.redo_stack = deque()
         
         self.canvas_scene.update()
-    
+
     def mousePressEvent(self, event):
         if not self.processing_left_click and not self.processing_right_click:
             self.prev_click_pos = event.pos()
             if event.button() == QtCore.Qt.MouseButton.LeftButton:
                 self.processing_left_click = True
-                self.leftMousePressEvent(event)
+                self.left_mouse_press_event(event)
             elif event.button() == QtCore.Qt.MouseButton.RightButton:
                 self.processing_right_click = True
-                self.rightMousePressEvent(event)
+                self.right_mouse_press_event(event)
     
     def mouseMoveEvent(self, event):
         if self.processing_left_click:
-            self.leftMouseDraggedEvent(event)
+            self.left_mouse_dragged_event(event)
         elif self.processing_right_click:
-            self.rightMouseDraggedEvent(event)
+            self.right_mouse_dragged_event(event)
 
     def mouseReleaseEvent(self, event):
         if event.button() == QtCore.Qt.MouseButton.LeftButton:
-            self.leftMouseReleaseEvent()
+            self.left_mouse_release_event()
             self.processing_left_click = False
         elif event.button() == QtCore.Qt.MouseButton.RightButton:
-            self.rightMouseReleaseEvent(event)
+            self.right_mouse_release_event(event)
             self.processing_right_click = False
     
-    def leftMousePressEvent(self, event):
-        if self.draw_mode:
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.reset_scene_rect()
+        
+    def wheelEvent(self, event):
+        """
+        Handle mouse wheel events for zooming in and out.
+        """        
+        if event.angleDelta().y() > 0:
+            factor = 1.25
+            self.zoom += 1
+        else:
+            factor = 0.8
+            self.zoom -= 1
+        if self.zoom > -ZOOM_LIMIT and self.zoom < ZOOM_LIMIT:
+            self.scale(factor, factor)
+        else:
+            self.zoom = max(min(self.zoom, ZOOM_LIMIT), -ZOOM_LIMIT)
+
+        # Just ensuring zoom level is within limits
+        self.zoom = max(min(self.zoom, ZOOM_LIMIT), -ZOOM_LIMIT)
+    
+    def left_mouse_press_event(self, event):
+        self.setCursor(self.tools[self.tool_index].cursor)
+        self.current_item = self.tools[self.tool_index].get_item(intersecting_items=self.items(event.pos()), origin=self.mapToScene(event.pos()), pixmap = self.subject_pixmap)
+        if self.tools[self.tool_index].name == "Eraser" and self.current_item:
+            self.subtractive_action(self.current_item)
+        elif self.current_item:
+            self.additive_action(self.current_item)
+
+    def left_mouse_dragged_event(self, event):        
+        self.setCursor(self.tools[self.tool_index].cursor)
+        if self.tools[self.tool_index].commit_on_drag:
+            self.left_mouse_press_event(event)
+        else:
+            self.tools[self.tool_index].drag(position = self.mapToScene(event.pos()))
+
+    def left_mouse_release_event(self):           
+        if self.tools[self.tool_index].persistent_cursor:
             self.setCursor(self.tools[self.tool_index].cursor)
-            self.current_item = self.tools[self.tool_index].get_item(colliding_items=self.items(event.pos()), origin=self.mapToScene(event.pos()))
-            if self.tools[self.tool_index].name == "Eraser" and self.current_item:
-                self.subtractive_action(self.current_item)
-            elif self.current_item:
-                self.additive_action(self.current_item)
+        else:
+            self.setCursor(Qt.CursorShape.ArrowCursor)
 
-    def leftMouseDraggedEvent(self, event):
-        if self.draw_mode:
-            self.setCursor(self.tools[self.tool_index].cursor)
-            if self.tools[self.tool_index].commit_on_drag:
-                self.leftMousePressEvent(event)
-            else:
-                self.tools[self.tool_index].drag(position = self.mapToScene(event.pos()))
-
-    def leftMouseReleaseEvent(self):        
-        if self.draw_mode:            
-            if self.tools[self.tool_index].persistent_cursor:
-                self.setCursor(self.tools[self.tool_index].cursor)
-            else:
-                self.setCursor(Qt.CursorShape.ArrowCursor)
-
-    def additive_action(self, item):        
-        adjusted_width = (self.stroke_width + 1) / self.transform().m11()
-        self.current_item.setPen(QPen(self.stroke_color, adjusted_width))
-        self.canvas_scene.addItem(self.current_item)
+    def additive_action(self, item):
+        self.current_item = item     
+        adjusted_width = (self.stroke_width + 1) # / self.transform().m11()        
+        # let's only setPen and setBrush if the item has those methods
+        if hasattr(item, "setPen") and hasattr(item, "setBrush"):
+            item.setPen(QPen(self.stroke_color, adjusted_width))
+            item.setBrush(QBrush(self.fill_color))
+        elif hasattr(item, "setPen"):
+            item.setPen(QPen(self.stroke_color, adjusted_width))
+        self.scene().addItem(self.current_item)
         self.drawn_items.append(self.current_item)
         self.undo_stack.append({"item": item, "action": "drawn"})
         self.redo_stack.clear()
@@ -161,32 +189,22 @@ class CanvasView(QtWidgets.QGraphicsView):
                 self.drawn_items.remove(action_to_redo["item"])
                 self.undo_stack.append({"item": action_to_redo["item"], "action": "erased"})
      
-    def rightMousePressEvent(self, event):
-        """ 
-        Handle mouse press events in presentation mode.
-        """
+    def right_mouse_press_event(self, event):
         self.setCursor(Qt.CursorShape.OpenHandCursor)        
         self.prev_click_pos = event.pos()
 
-    def rightMouseDraggedEvent(self, event):
-        """
-        Handle mouse move events in presentation mode.
-        """
+    def right_mouse_dragged_event(self, event):
         self.setCursor(Qt.CursorShape.OpenHandCursor)        
         diff = event.pos() - self.prev_click_pos
         self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() - diff.x())
         self.verticalScrollBar().setValue(self.verticalScrollBar().value() - diff.y())
         self.prev_click_pos = event.pos()
 
-    def rightMouseReleaseEvent(self, event):
-        """
-        Handle mouse release events in presentation mode.
-        """
-        if self.draw_mode:
-            if self.tools[self.tool_index].persistent_cursor:
-                self.setCursor(self.tools[self.tool_index].cursor)
-            else:
-                self.setCursor(Qt.CursorShape.ArrowCursor)  
+    def right_mouse_release_event(self, event):
+        if self.tools[self.tool_index].persistent_cursor:
+            self.setCursor(self.tools[self.tool_index].cursor)
+        else:
+            self.setCursor(Qt.CursorShape.ArrowCursor)  
 
     def reset_undo_redo_stacks(self):
         """
@@ -194,24 +212,6 @@ class CanvasView(QtWidgets.QGraphicsView):
         """
         self.undo_stack.clear()
         self.redo_stack.clear()
-
-    def wheelEvent(self, event):
-        """
-        Handle mouse wheel events for zooming in and out.
-        """        
-        if event.angleDelta().y() > 0:
-            factor = 1.25
-            self.zoom += 1
-        else:
-            factor = 0.8
-            self.zoom -= 1
-        if self.zoom > -ZOOM_LIMIT and self.zoom < ZOOM_LIMIT:
-            self.scale(factor, factor)
-        else:
-            self.zoom = max(min(self.zoom, ZOOM_LIMIT), -ZOOM_LIMIT)
-
-        # Just ensuring zoom level is within limits
-        self.zoom = max(min(self.zoom, ZOOM_LIMIT), -ZOOM_LIMIT)
 
     def reset_zoom(self):
         current_zoom = self.transform().m11()
@@ -236,10 +236,6 @@ class CanvasView(QtWidgets.QGraphicsView):
             4 * SCENE_RECT_MULTIPLE * self.height()
         )
         self.canvas_scene.setSceneRect(initial_scene_rect)
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self.reset_scene_rect()
 
     def clear(self):
         self.canvas_scene.clear()
@@ -281,32 +277,22 @@ class CanvasView(QtWidgets.QGraphicsView):
         self.tool_index = 4
         self.setCursor(Qt.CursorShape.ArrowCursor)
     
+    def set_image_tool(self):
+        self.tool_index = 5
+        self.setCursor(self.tools[self.tool_index].cursor)
+    
     def set_color(self, color):
         self.stroke_color = color
     
-    def set_draw_mode(self):
+
+    def set_canvas_mode(self):
         if self.tools[self.tool_index].persistent_cursor:
             self.setCursor(self.tools[self.tool_index].cursor)
         else:
             self.setCursor(Qt.CursorShape.ArrowCursor)
-        self.draw_mode = True
-        self.present_mode = False
-        self.hidden_mode = False
-    
-    def set_present_mode(self):
-        self.setCursor(Qt.CursorShape.ArrowCursor)
-        self.draw_mode = False
-        self.present_mode = True
-        self.hidden_mode = False
-    
-    def set_hidden_mode(self):
-        self.setCursor(Qt.CursorShape.ArrowCursor)
-        self.draw_mode = False
-        self.present_mode = False
-        self.hidden_mode = True
     
     def advance(self, dt: float):
-        self.canvas_scene.advance()
+        self.scene().advance()
 
     def load_cursor(self, resource, hot_x, hot_y):
         cursor_size = 18
@@ -317,6 +303,10 @@ class CanvasView(QtWidgets.QGraphicsView):
         return QCursor(QPixmap.fromImage(icon_image), hot_x, hot_y)
 
 
-
+    def add_image(self, pixmap):
+            print("Adding image to scene.")
+            pixmap_item = QGraphicsPixmapItem(pixmap)
+            self.additive_action(pixmap_item)
+            print("Added image to active Canvas.")
 
 

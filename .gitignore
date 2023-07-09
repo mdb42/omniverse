@@ -1,4 +1,4 @@
 .test/
 .venv/
+.output/
 local/
-output/

@@ -1,0 +1,16 @@
+"""
+    Short Term:
+    TODO: Create a full startup sequence that logs in a user or creates a new user, removing reliance on /local directory.
+    TODO: Create a full shutdown sequence that saves all data and logs out the user if "Stay Online" setting not selected.
+    TODO: Fix the LLM Manager's preprocessing functions.
+    TODO: Implement brush fills for the canvas view's draw mode shape tools.
+    TODO: Repurpose Present Mode for displaying simulation spaces like tabletop games and virtual worlds.
+    TODO: Start developing QGraphicsItemGroups for LLM related widgets in the new code graphics view.
+
+    Long Term:
+    TODO: Build alternate chat interface with responses presented discretely for easier feedbacks.
+    TODO: Create methods for saving and loading the view, model, or session.
+    TODO: Redevelop the LLM Manager to manage multiple AI personae with dynamic prompt grounding.
+    TODO: Implement more life-like voices to improve Text-to-Speech.
+    TODO: Implement OpenAI's Whisper API for Speech-to-Text.
+    """

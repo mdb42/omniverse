@@ -4,9 +4,10 @@ openai
 langchain
 tiktoken
 pyttsx3
-pygame
 sounddevice
 Pillow
 requests
 cryptography
 sqlalchemy-utils
+passlib
+bcrypt

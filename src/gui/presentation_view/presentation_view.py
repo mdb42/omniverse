@@ -9,11 +9,7 @@ import importlib.resources
 SCENE_RECT_MULTIPLE = 2
 ZOOM_LIMIT = 5
 
-class CodeView(QtWidgets.QGraphicsView):
-    present_mode = True
-    draw_mode = False    
-    code_mode = False
-
+class PresentationView(QtWidgets.QGraphicsView):
     animating = True
     undoAvailable = QtCore.pyqtSignal(bool)
     redoAvailable = QtCore.pyqtSignal(bool)
@@ -27,10 +23,10 @@ class CodeView(QtWidgets.QGraphicsView):
         self.setFrameShape(QtWidgets.QFrame.Shape.Box)
         self.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
         self.setMouseTracking(True)
-        self.code_scene = QGraphicsScene()
-        self.background_color = QColor(200, 200, 200, 255)
-        self.code_scene.setBackgroundBrush(self.background_color)
-        self.setScene(self.code_scene)
+        self.blueprint_scene = QGraphicsScene()
+        self.background_color = QColor(200, 200, 200, 255)        
+        self.setScene(self.blueprint_scene)
+        self.scene().setBackgroundBrush(self.background_color)
         self.reset_scene_rect()
         self.setViewportUpdateMode(QtWidgets.QGraphicsView.ViewportUpdateMode.FullViewportUpdate)
         # Go ahead and paint the background
@@ -44,7 +40,6 @@ class CodeView(QtWidgets.QGraphicsView):
 
     def mouseReleaseEvent(self, event):
         pass
-
     
     def undo(self):
         pass
@@ -101,14 +96,14 @@ class CodeView(QtWidgets.QGraphicsView):
             4 * SCENE_RECT_MULTIPLE * self.width(),
             4 * SCENE_RECT_MULTIPLE * self.height()
         )
-        self.code_scene.setSceneRect(initial_scene_rect)
+        self.blueprint_scene.setSceneRect(initial_scene_rect)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.reset_scene_rect()
     
     def advance(self, dt: float):
-        self.code_scene.advance()
+        self.scene().advance()
 
 
 

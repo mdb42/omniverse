@@ -6,13 +6,12 @@ class EraserTool(CanvasToolBase):
     def __init__(self, cursor):
         super().__init__("Eraser", cursor)
         self.commit_on_drag = True
-        self.colliding_items = []
         
 
     def get_item(self, *args, **kwargs) -> QGraphicsItem:
         super().get_item(**kwargs)
         self.item = None
-        for item in self.colliding_items:                    
+        for item in self.intersecting_items:                    
             if self.should_erase_item(item, self.origin):
                 self.item = item
                 break  # Stop after finding one item
