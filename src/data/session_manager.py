@@ -41,32 +41,32 @@ class SessionManager:
 
     def __init__(self, app_name, key):
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        print("Pwd context: " + str(self.pwd_context))
+        # print("Pwd context: " + str(self.pwd_context))
         # Setup session variables
         self.start_time = datetime.now()
         # base directory should be the project directory's local folder
         self.base_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'local')
-        print("Base dir: " + self.base_dir)
+        # print("Base dir: " + self.base_dir)
         self.docs_dir = Path.home() / 'Documents' / app_name
-        print("Docs dir: " + str(self.docs_dir))
+        # print("Docs dir: " + str(self.docs_dir))
         self.pref_dir = self.base_dir    
-        print("Pref dir: " + str(self.pref_dir))   
+        # print("Pref dir: " + str(self.pref_dir))   
         self.users_db_path = os.path.join(self.base_dir, 'users.db')
-        print("Users db path: " + self.users_db_path)
+        # print("Users db path: " + self.users_db_path)
         self.encryption_key = key
-        print("Encryption key: " + str(self.encryption_key))
+        # print("Encryption key: " + str(self.encryption_key))
         self.current_user = None
-        print("Current user: " + str(self.current_user))
+        # print("Current user: " + str(self.current_user))
         self.current_user_name = constants.DEFAULT_USER_NAME # Just for testing   
-        print("Current user name: " + str(self.current_user_name))     
+        # print("Current user name: " + str(self.current_user_name))     
         self.preferred_output_dir = None
-        print("Preferred output dir: " + str(self.preferred_output_dir))
+        # print("Preferred output dir: " + str(self.preferred_output_dir))
         self.engine = None
-        print("Engine: " + str(self.engine))
+        # print("Engine: " + str(self.engine))
         self.session = None
-        print("Session: " + str(self.session))
+        # print("Session: " + str(self.session))
         self.setup()
-        print("Setup complete")
+        # print("Setup complete")
 
     ####################################################################################################
     # Database operations
@@ -82,11 +82,11 @@ class SessionManager:
             self.ensure_dir_exists(self.base_dir)
             # Create the users database
 
-        print(str(self.base_dir))
+        # print(str(self.base_dir))
         # Check if the engine is already created
         if self.engine is None:
             # Create the engine
-            print("Creating engine")
+            # print("Creating engine")
             self.engine = create_engine('sqlite:///' + self.users_db_path)        
         Base.metadata.create_all(self.engine)
         Session = sessionmaker(bind=self.engine)
@@ -94,14 +94,15 @@ class SessionManager:
 
         # if no users exist, create a default admin user
         if self.session.query(User).count() == 0:
-            print("No users found.")
+            # print("No users found.")
             self.create_user("admin", "admin", "pasword", "None", os.path.join(self.base_dir, "private/admin"), "he/him")
             
         else:
-            print("Users exist")
+            # print("Users exist")
             # Let's print out all the users in the database by name
             for user in self.session.query(User).all():
-                print(user.name)
+                # print(user.name)
+                pass
         
         
             

@@ -6,30 +6,45 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>230</width>
-    <height>469</height>
+    <width>149</width>
+    <height>147</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <layout class="QGridLayout" name="gridLayout_2">
+   <property name="leftMargin">
+    <number>3</number>
+   </property>
+   <property name="topMargin">
+    <number>3</number>
+   </property>
+   <property name="rightMargin">
+    <number>3</number>
+   </property>
+   <property name="bottomMargin">
+    <number>3</number>
+   </property>
+   <property name="spacing">
+    <number>3</number>
+   </property>
    <item row="0" column="0">
-    <layout class="QGridLayout" name="chat_interface_layout" rowstretch="0,0">
+    <layout class="QGridLayout" name="chat_interface_layout" rowstretch="1,0">
      <property name="leftMargin">
-      <number>1</number>
+      <number>0</number>
      </property>
      <property name="topMargin">
-      <number>1</number>
+      <number>0</number>
      </property>
      <property name="rightMargin">
-      <number>1</number>
+      <number>0</number>
      </property>
      <property name="bottomMargin">
-      <number>1</number>
+      <number>0</number>
      </property>
      <property name="spacing">
-      <number>1</number>
+      <number>0</number>
      </property>
      <item row="1" column="1">
       <layout class="QHBoxLayout" name="chat_input_layout">
@@ -37,13 +52,13 @@
         <number>0</number>
        </property>
        <property name="leftMargin">
-        <number>1</number>
+        <number>0</number>
        </property>
        <property name="topMargin">
-        <number>1</number>
+        <number>0</number>
        </property>
        <property name="rightMargin">
-        <number>1</number>
+        <number>0</number>
        </property>
        <property name="bottomMargin">
         <number>0</number>
@@ -51,19 +66,19 @@
        <item>
         <layout class="QGridLayout" name="chat_audio_button_layout">
          <property name="leftMargin">
-          <number>1</number>
+          <number>0</number>
          </property>
          <property name="topMargin">
-          <number>1</number>
+          <number>0</number>
          </property>
          <property name="rightMargin">
-          <number>1</number>
+          <number>0</number>
          </property>
          <property name="bottomMargin">
-          <number>1</number>
+          <number>0</number>
          </property>
          <property name="spacing">
-          <number>1</number>
+          <number>0</number>
          </property>
          <item row="1" column="0">
           <widget class="QPushButton" name="stt_button">
@@ -154,19 +169,19 @@
        <item>
         <layout class="QGridLayout" name="chat_generation_button_layout">
          <property name="leftMargin">
-          <number>1</number>
+          <number>0</number>
          </property>
          <property name="topMargin">
-          <number>1</number>
+          <number>0</number>
          </property>
          <property name="rightMargin">
-          <number>1</number>
+          <number>0</number>
          </property>
          <property name="bottomMargin">
-          <number>1</number>
+          <number>0</number>
          </property>
          <property name="spacing">
-          <number>1</number>
+          <number>0</number>
          </property>
          <item row="2" column="0">
           <widget class="QPushButton" name="generate_image_button">
@@ -243,9 +258,9 @@
      <item row="0" column="1">
       <widget class="QTextBrowser" name="chat_output_browser">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+        <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
          <horstretch>0</horstretch>
-         <verstretch>2</verstretch>
+         <verstretch>10</verstretch>
         </sizepolicy>
        </property>
        <property name="minimumSize">

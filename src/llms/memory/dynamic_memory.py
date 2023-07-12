@@ -67,24 +67,24 @@ class DynamicMemory(BaseMemory, BaseModel):
         self.memory_string = self.generate_new_memory()
 
     def preprocessing(self, input):
-        print("Preprocessing")
+        print("*****Preprocessing*****")
         self.current_input = input
         loop = asyncio.get_event_loop()
         try:
             self.current_sentiment, self.current_entities, server_info = loop.run_until_complete(asyncio.gather(
                 self.generate_new_sentiment_analysis(),
                 self.generate_new_entities(),
-                self.get_server_info()
+                # self.get_server_info()
             ))
         except Exception as e:
             print(f"An error occurred: {str(e)}")
 
     def postprocessing(self, input):
-        print("Postprocessing")
+        print("******Postprocessing*****")
         self.current_input = input
         loop = asyncio.get_event_loop()
         try:
-            self.current_summary, self.current_knowledge, server_info = loop.run_until_complete(asyncio.gather(
+            self.current_summary, self.current_knowledge, = loop.run_until_complete(asyncio.gather(
                 self.generate_new_summary(),
                 self.generate_new_knowledge()
             ))
@@ -95,10 +95,10 @@ class DynamicMemory(BaseMemory, BaseModel):
         print("Generating new summary")
         new_summary = "Default summary."
         summarizer_chain = LLMChain(llm=self.summary_llm, prompt=self.summarizer_prompt)
-        if len(self.message_buffer) > 2:
+        if len(self.message_buffer) > 1:
             print("Last summary: ", self.current_summary)
-            print("Last 4 messages: ", self.get_last_k_messages(4))
-            new_summary = await summarizer_chain.arun(current_summary=self.current_summary, chat_history=self.get_last_k_messages(4))
+            print("Last 4 messages: ", self.get_last_k_messages(1))
+            new_summary = await summarizer_chain.arun(current_summary=self.current_summary, chat_history=self.get_last_k_messages(1))
         self.previous_summary = self.current_summary
         self.current_summary = new_summary
         return new_summary
@@ -120,10 +120,10 @@ class DynamicMemory(BaseMemory, BaseModel):
         print("Running entity chain")
         chain = LLMChain(llm=self.entity_llm, prompt=self.entity_extraction_prompt)
         print("Entity chain created")
-        if len(self.message_buffer) > 3:
-            print("Last 4 messages: ", self.get_last_k_messages(4))
+        if len(self.message_buffer) > 1:
+            print("Last 4 messages: ", self.get_last_k_messages(1))
             print("Last message: ", self.current_input)
-            new_entities = await chain.arun(history=self.get_last_k_messages(4), input=self.current_input)
+            new_entities = await chain.arun(history=self.get_last_k_messages(1), input=self.current_input)
             print("New entities: ", new_entities)
         return new_entities
 
@@ -131,10 +131,10 @@ class DynamicMemory(BaseMemory, BaseModel):
         print("Generating new sentiment analysis")
         new_sentiment_analysis = "None"
         chain = LLMChain(llm=self.sentiment_llm, prompt=self.sentiment_analysis_prompt)
-        if len(self.message_buffer) > 2:
-            print("Last 3 messages: ", self.get_last_k_messages(3))
+        if len(self.message_buffer) > 1:
+            print("Last 3 messages: ", self.get_last_k_messages(1))
             print("Last message: ", self.current_input)
-            new_sentiment_analysis = await chain.arun(history=self.get_last_k_messages(3), input=self.current_input)
+            new_sentiment_analysis = await chain.arun(history=self.get_last_k_messages(1), input=self.current_input)
             print("New sentiment analysis: ", new_sentiment_analysis)
         return new_sentiment_analysis
 
@@ -142,10 +142,11 @@ class DynamicMemory(BaseMemory, BaseModel):
         print("Generating new knowledge triplets")
         new_knowledge = "None"
         chain = LLMChain(llm=self.knowledge_llm, prompt=self.knowledge_extraction_prompt)
+        print("New knowledge chain created")
         if len(self.message_buffer) > 1:
-            print("Last 2 messages: ", self.get_last_k_messages(2))
+            print("Last 2 messages: ", self.get_last_k_messages(1))
             print("Last message: ", self.current_input)
-            new_knowledge = await chain.arun(history=self.get_last_k_messages(2), input=self.current_input)
+            new_knowledge = await chain.arun(history=self.get_last_k_messages(1), input=self.current_input)
             print("New knowledge: ", new_knowledge)
         return new_knowledge
 

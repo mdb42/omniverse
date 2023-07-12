@@ -129,12 +129,11 @@ class LLMManager:
         self.prompt_token_count = self.get_token_count(self.current_prompt)
         self.output_token_count = self.get_token_count(self.current_output)
         self.total_token_count = self.prompt_token_count + self.output_token_count
-        print("Prompt Token Count: " + str(self.prompt_token_count))
-        print("Summary Token Count: " + str(self.summary_token_count))
-        print("Response Token Count: " + str(self.output_token_count))
-        print("Total Token Count: " + str(self.total_token_count))
-        # self.memory_status_label.setText(
-        #    "Summary:" + str(self.summary_token_count) + "; Total: " + str(self.total_token_count))
+        # print("Prompt Token Count: " + str(self.prompt_token_count))
+        # print("Summary Token Count: " + str(self.summary_token_count))
+        # print("Response Token Count: " + str(self.output_token_count))
+        # print("Total Token Count: " + str(self.total_token_count))
+        
 
     def get_token_count(self, prompt: str) -> int:
         encoding_model = 'p50k_base'

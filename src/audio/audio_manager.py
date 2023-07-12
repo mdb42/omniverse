@@ -36,7 +36,7 @@ class AudioManager:
         self.pyttsx3 = Pyttsx3Engine()
         self.tts_manager = TTSManager(self.pyttsx3)
 
-        print("AudioManager initialized")
+        # print("AudioManager initialized")
 
     def load_all_sound_effects(self):
         """
@@ -46,7 +46,7 @@ class AudioManager:
             for file_name in os.listdir(sound_dir):
                 name, ext = os.path.splitext(file_name)
                 if ext in ['.wav', '.flac']:  # soundfile supports .wav and .flac primarily
-                    print(f"Loading sound effect: {name}")
+                    # print(f"Loading sound effect: {name}")
                     self.load_sound_effect(name, os.path.join(sound_dir, file_name))
 
     def load_sound_effect(self, name, file_path):
@@ -89,7 +89,7 @@ class AudioManager:
         """
         Play text to speech.
         """
-        self.tts_manager.play_text(text)
+        self.tts_manager.play_speech_async(text)
 
     def start_text_to_speech(self):
         """

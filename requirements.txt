@@ -5,6 +5,7 @@ langchain
 tiktoken
 pyttsx3
 sounddevice
+soundfile
 Pillow
 requests
 cryptography

@@ -6,99 +6,100 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>832</width>
-    <height>553</height>
+    <width>640</width>
+    <height>360</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="main_widget">
    <layout class="QGridLayout" name="gridLayout_4" columnstretch="0">
+    <property name="leftMargin">
+     <number>5</number>
+    </property>
+    <property name="topMargin">
+     <number>5</number>
+    </property>
+    <property name="rightMargin">
+     <number>5</number>
+    </property>
+    <property name="bottomMargin">
+     <number>5</number>
+    </property>
+    <property name="spacing">
+     <number>0</number>
+    </property>
     <item row="0" column="0">
      <widget class="QSplitter" name="main_splitter">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
       <widget class="QWidget" name="gridLayoutWidget">
        <layout class="QGridLayout" name="controls_layout">
+        <property name="spacing">
+         <number>0</number>
+        </property>
         <item row="0" column="0">
          <widget class="QStackedWidget" name="controls_stacked_widget">
-          <widget class="QWidget" name="presentation_controls_page">
-           <layout class="QGridLayout" name="gridLayout_6">
-            <item row="0" column="0">
-             <layout class="QGridLayout" name="presentation_controls_layout"/>
-            </item>
-           </layout>
-          </widget>
-          <widget class="QWidget" name="canvas_controls_page">
-           <layout class="QGridLayout" name="gridLayout_14">
-            <item row="0" column="0">
-             <layout class="QGridLayout" name="canvas_controls_layout"/>
-            </item>
-           </layout>
-          </widget>
-          <widget class="QWidget" name="blueprint_controls_page">
-           <layout class="QGridLayout" name="gridLayout_20">
-            <item row="0" column="0">
-             <layout class="QGridLayout" name="blueprint_controls_layout"/>
-            </item>
-           </layout>
-          </widget>
+          <property name="frameShape">
+           <enum>QFrame::Box</enum>
+          </property>
+          <property name="frameShadow">
+           <enum>QFrame::Raised</enum>
+          </property>
          </widget>
         </item>
        </layout>
       </widget>
       <widget class="QWidget" name="gridLayoutWidget_2">
        <layout class="QGridLayout" name="displays_layout">
+        <property name="spacing">
+         <number>0</number>
+        </property>
         <item row="0" column="0">
          <widget class="QStackedWidget" name="displays_stacked_widget">
-          <widget class="QWidget" name="presentation_view_page">
-           <layout class="QGridLayout" name="gridLayout_8">
-            <item row="0" column="0">
-             <layout class="QGridLayout" name="presentation_view_layout"/>
-            </item>
-           </layout>
-          </widget>
-          <widget class="QWidget" name="canvas_view_page">
-           <layout class="QGridLayout" name="gridLayout_15">
-            <item row="0" column="0">
-             <layout class="QGridLayout" name="canvas_view_layout"/>
-            </item>
-           </layout>
-          </widget>
-          <widget class="QWidget" name="blueprint_view_page">
-           <layout class="QGridLayout" name="gridLayout_21">
-            <item row="0" column="0">
-             <layout class="QGridLayout" name="blueprint_view_layout"/>
-            </item>
-           </layout>
-          </widget>
+          <property name="frameShape">
+           <enum>QFrame::NoFrame</enum>
+          </property>
+          <property name="frameShadow">
+           <enum>QFrame::Sunken</enum>
+          </property>
+          <property name="currentIndex">
+           <number>-1</number>
+          </property>
          </widget>
         </item>
        </layout>
       </widget>
       <widget class="QWidget" name="gridLayoutWidget_3">
        <layout class="QGridLayout" name="chat_layout">
+        <property name="spacing">
+         <number>0</number>
+        </property>
         <item row="0" column="0">
          <widget class="QStackedWidget" name="chat_stacked_widget">
-          <property name="currentIndex">
-           <number>1</number>
+          <property name="frameShape">
+           <enum>QFrame::Box</enum>
           </property>
-          <widget class="QWidget" name="chat_interface_page">
-           <layout class="QGridLayout" name="gridLayout_10">
-            <item row="0" column="0">
-             <layout class="QGridLayout" name="chat_interface_layout"/>
-            </item>
-           </layout>
-          </widget>
-          <widget class="QWidget" name="chat_test_page">
-           <layout class="QGridLayout" name="gridLayout_16">
-            <item row="0" column="0">
-             <layout class="QGridLayout" name="chat_test_layout"/>
-            </item>
-           </layout>
-          </widget>
+          <property name="frameShadow">
+           <enum>QFrame::Raised</enum>
+          </property>
+          <property name="currentIndex">
+           <number>-1</number>
+          </property>
          </widget>
         </item>
        </layout>
@@ -112,7 +113,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>832</width>
+     <width>640</width>
      <height>21</height>
     </rect>
    </property>
@@ -120,11 +121,12 @@
     <property name="title">
      <string>File</string>
     </property>
-   </widget>
-   <widget class="QMenu" name="menu_edit">
-    <property name="title">
-     <string>Edit</string>
-    </property>
+    <addaction name="action_new"/>
+    <addaction name="action_open"/>
+    <addaction name="action_recent"/>
+    <addaction name="separator"/>
+    <addaction name="action_save"/>
+    <addaction name="action_save_as"/>
    </widget>
    <widget class="QMenu" name="menu_view">
     <property name="title">
@@ -135,11 +137,7 @@
     <property name="title">
      <string>Settings</string>
     </property>
-   </widget>
-   <widget class="QMenu" name="menu_window">
-    <property name="title">
-     <string>Window</string>
-    </property>
+    <addaction name="action_dark_mode"/>
    </widget>
    <widget class="QMenu" name="menu_help">
     <property name="title">
@@ -148,27 +146,67 @@
     <addaction name="action_about"/>
    </widget>
    <addaction name="menu_file"/>
-   <addaction name="menu_edit"/>
    <addaction name="menu_view"/>
    <addaction name="menu_settings"/>
-   <addaction name="menu_window"/>
    <addaction name="menu_help"/>
   </widget>
   <widget class="QStatusBar" name="status_bar"/>
-  <widget class="QToolBar" name="tool_bar">
-   <property name="windowTitle">
-    <string>toolBar</string>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-  </widget>
   <action name="action_about">
    <property name="text">
     <string>About</string>
+   </property>
+  </action>
+  <action name="actionMaximize">
+   <property name="text">
+    <string>Maximize</string>
+   </property>
+  </action>
+  <action name="actionRestore">
+   <property name="text">
+    <string>Restore</string>
+   </property>
+  </action>
+  <action name="actionMinimize">
+   <property name="text">
+    <string>Minimize</string>
+   </property>
+  </action>
+  <action name="actionClose">
+   <property name="text">
+    <string>Close</string>
+   </property>
+  </action>
+  <action name="action_dark_mode">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Dark Mode</string>
+   </property>
+  </action>
+  <action name="action_new">
+   <property name="text">
+    <string>New</string>
+   </property>
+  </action>
+  <action name="action_open">
+   <property name="text">
+    <string>Open</string>
+   </property>
+  </action>
+  <action name="action_recent">
+   <property name="text">
+    <string>Recent</string>
+   </property>
+  </action>
+  <action name="action_save">
+   <property name="text">
+    <string>Save</string>
+   </property>
+  </action>
+  <action name="action_save_as">
+   <property name="text">
+    <string>Save as...</string>
    </property>
   </action>
  </widget>
