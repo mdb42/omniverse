@@ -224,7 +224,6 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
 
             self.displays_stacked_widget.addWidget(mode.display)
             self.controls_stacked_widget.addWidget(mode.control_widget)
-            # print(f"Initializing {mode.description}")
 
     def initialize_gui(self):
         """ Initialize the GUI. """

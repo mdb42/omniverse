@@ -14,3 +14,25 @@
     TODO: Implement more life-like voices to improve Text-to-Speech.
     TODO: Implement OpenAI's Whisper API for Speech-to-Text.
     """
+
+    """
+    1. User Profiles: Each user should have a profile that displays their name, profile picture, and any relevant information. This helps to identify and differentiate between users in the conversation.
+
+2. Chat History: The chat window should display the conversation history, allowing users to refer back to previous messages and discussions. This helps to maintain context and continuity in the conversation.
+
+3. Message Input Box: A text input box where users can type their messages and send them to the conversation. This is the primary component for users to interact with the chat client.
+
+4. Send Button: A button that users can click to send their typed message to the conversation. This provides a clear and intuitive way for users to send their messages.
+
+5. Emojis and Stickers: Including a selection of emojis and stickers can add a fun and expressive element to the chat client. Users can use these to convey emotions or reactions in a more visual way.
+
+6. Mention/Tagging Feature: A feature that allows users to mention or tag specific users in the conversation. This helps to direct messages to specific individuals and ensures they receive notifications.
+
+7. Notifications: The chat client should have a notification system to alert users when they receive new messages or when they are mentioned/tagged. This ensures that users stay updated and can respond promptly.
+
+8. Search Function: A search bar that allows users to search for specific keywords or messages within the conversation history. This helps users find relevant information quickly and easily.
+
+9. Voice and Video Call Buttons: Including buttons for voice and video calls can provide users with the option to switch to real-time communication when needed. This adds flexibility to the chat client.
+
+10. Settings and Preferences: A settings menu where users can customize their chat client experience. This can include options for notification preferences, chat appearance, and other personalization features.
+"""
