@@ -1,4 +1,4 @@
-from src.art.base_art_generator import BaseArtGenerator
+
 from src.art.dall_e_generator import DALLEGenerator
 from PIL import Image
 from io import BytesIO

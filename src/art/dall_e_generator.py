@@ -1,9 +1,9 @@
 from local import constants
-from src.art.base_art_generator import BaseArtGenerator
+from src.art.art_generator_base import ArtGeneratorBase
 import requests
 import os
 
-class DALLEGenerator(BaseArtGenerator):
+class DALLEGenerator(ArtGeneratorBase):
     def __init__(self):
         self.api_key = constants.OPENAI_API_KEY
 

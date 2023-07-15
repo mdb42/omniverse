@@ -1,31 +1,33 @@
-import sys, webbrowser
+import sys
 from local import constants
-from src.gui import omniverse_main
+from gui import omniverse_main
 from importlib.resources import files
+
+from src import utils
 from src.data.session_manager import SessionManager
 from src.audio.audio_manager import AudioManager
 from src.art.art_manager import ArtManager
 from src.llms.llm_manager import LLMManager
 from langchain.callbacks.base import BaseCallbackManager
+from gui.callbacks.streaming_browser_out import StreamingBrowserCallbackHandler
 
-from src.gui.windows.login_window import Ui_Form as LoginUI
-from src.gui.windows.user_creation_window import Ui_Form as UserCreationUI
+from gui.modes.presentation_mode.presentation_mode import PresentationMode
+from gui.modes.canvas_mode.canvas_mode import CanvasMode, CanvasView
+from gui.modes.blueprint_mode.blueprint_mode import BlueprintMode
 
-from src.gui.modes.presentation_mode.presentation_mode import PresentationMode
-from src.gui.modes.canvas_mode.canvas_mode import CanvasMode, CanvasView
-from src.gui.modes.blueprint_mode.blueprint_mode import BlueprintMode
+from gui.components.chat_interface import ChatInterface
 
-from src.gui.components.chat_interface_widget import Ui_Form as ChatInterfaceUI
-from src.gui.callbacks.streaming_browser_out import StreamingBrowserCallbackHandler
+from gui.components.login_window import LoginWindow
 
 from PyQt6 import QtWidgets
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtGui import QPixmap, QIcon, QImage, QTextCursor
+from PyQt6.QtGui import QPixmap, QIcon, QTextCursor
 from PyQt6.QtCore import QTimer, Qt
 
 
+
 TITLE = "Omniverse"
-VERSION = "0.0.5"
+VERSION = "0.0.6"
 FRAMES_PER_SECOND = 66
 
 class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
@@ -56,7 +58,7 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
         # TODO: Remove these callbacks and replace with a json file defining completion batch sequences
         self.assistant_id = constants.DEFAULT_AI_NAME
         self.browser_callbacks = {
-            "response": BaseCallbackManager([StreamingBrowserCallbackHandler(self.chat_interface_ui.chat_output_browser)]),
+            "response": BaseCallbackManager([StreamingBrowserCallbackHandler(self.chat_interface.chat_output_browser)]),
             "sentiment": BaseCallbackManager([StreamingBrowserCallbackHandler(self.modes[2].control_ui.sentiment_browser)]),
             "entity": BaseCallbackManager([StreamingBrowserCallbackHandler(self.modes[2].control_ui.entity_browser)]),
             "knowledge": BaseCallbackManager([StreamingBrowserCallbackHandler(self.modes[2].control_ui.knowledge_browser)]),
@@ -91,13 +93,13 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
         self.llm_manager.preprocessing(self.current_user_prompt)
   
     def generate_response(self):
-        self.current_user_prompt = self.chat_interface_ui.chat_input_text_editor.toPlainText().rstrip()
-        self.chat_interface_ui.chat_output_browser.append("\n" + str(self.session.current_user_name + ": " + self.current_user_prompt + "\n"))
-        self.chat_interface_ui.chat_input_text_editor.clear()
-        self.chat_interface_ui.chat_input_text_editor.setFocus()
+        self.current_user_prompt = self.chat_interface.chat_input_text_editor.toPlainText().rstrip()
+        self.chat_interface.chat_output_browser.append("\n" + str(self.session.current_user_name + ": " + self.current_user_prompt + "\n"))
+        self.chat_interface.chat_input_text_editor.clear()
+        self.chat_interface.chat_input_text_editor.setFocus()
         print("Generating Response")
-        self.set_cursor_to_end(self.chat_interface_ui.chat_output_browser)
-        self.chat_interface_ui.chat_output_browser.append(self.assistant_id + ": ")
+        self.set_cursor_to_end(self.chat_interface.chat_output_browser)
+        self.chat_interface.chat_output_browser.append(self.assistant_id + ": ")
         self.preprocessing()
         self.current_generated_response = self.llm_manager.generate_response()
         self.postprocessing()
@@ -122,15 +124,15 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
     
     def generate_image(self):
         self.status_bar.showMessage("Generating Image...")
-        prompt = self.chat_interface_ui.chat_input_text_editor.toPlainText().rstrip()
+        prompt = self.chat_interface.chat_input_text_editor.toPlainText().rstrip()
         QtWidgets.QApplication.processEvents()
         pixmap = QPixmap()
         pixmap.loadFromData(self.art_manager.generate_image(prompt))
         if not pixmap.isNull():
             self.current_generated_image = pixmap
-            for test_mode in self.modes:
-                if isinstance(test_mode.display, CanvasView):
-                    test_mode.display.subject_pixmap = self.current_generated_image
+            for mode in self.modes:
+                if isinstance(mode.display, CanvasView):
+                    mode.display.subject_pixmap = self.current_generated_image
             self.status_bar.showMessage("Image Generation Complete")
         else:
             self.status_bar.showMessage("Image Generation Failed")
@@ -138,43 +140,16 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
     def toggle_text_to_speech(self):
         self.audio.text_to_speech = not self.audio.text_to_speech
         if self.audio.text_to_speech:
-            self.chat_interface_ui.tts_button.setIcon(QIcon(self.tts_on_button_icon_pixmap))
+            self.chat_interface.tts_button.setIcon(QIcon(self.chat_interface.tts_on_button_icon_pixmap))
         else:
-            self.chat_interface_ui.tts_button.setIcon(QIcon(self.tts_off_button_icon_pixmap))
+            self.chat_interface.tts_button.setIcon(QIcon(self.chat_interface.tts_off_button_icon_pixmap))
 
     def toggle_speech_to_text(self):
         self.audio.speech_to_text = not self.audio.speech_to_text
         if self.audio.speech_to_text:
-            self.chat_interface_ui.stt_button.setIcon(QIcon(self.stt_on_button_icon_pixmap))
+            self.chat_interface.stt_button.setIcon(QIcon(self.chat_interface.stt_on_button_icon_pixmap))
         else:
-            self.chat_interface_ui.stt_button.setIcon(QIcon(self.stt_off_button_icon_pixmap))
-
-    def login_button_clicked(self):
-        print("Logging in")
-
-    def twitter_button_clicked(self):
-        webbrowser.open(constants.CREATOR_TWITTER_URL)
-    
-    def discord_button_clicked(self):
-        webbrowser.open(constants.DISCORD_URL)
-    
-    def github_button_clicked(self):
-        webbrowser.open(constants.GITHUB_URL)
-
-    def create_new_user_button_clicked(self):
-        print("Create New User Clicked")
-        self.exit_login()
-        self.user_creation_widget.show()
-    
-    def exit_login(self):
-        self.login_widget.close()
-    
-    def load_icon(self, resource):
-        resource_path = files("resources.icons") / resource
-        with open(resource_path, 'rb') as file:
-            icon_data = file.read()
-        icon_image = QImage.fromData(icon_data)
-        return QPixmap.fromImage(icon_image)
+            self.chat_interface.stt_button.setIcon(QIcon(self.chat_interface.stt_off_button_icon_pixmap))
     
     def set_mode(self):
         self.mode_index = self.mode_selector_button_group.checkedId()
@@ -186,8 +161,7 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
 
     def setup_window(self):
         self.setWindowTitle(f"{TITLE} {VERSION}")
-        self.application_icon_pixmap = self.load_icon("application-icon.ico")
-        self.setWindowIcon(QIcon(self.application_icon_pixmap))
+        self.setWindowIcon(QIcon(utils.load_icon("application-icon.ico")))
         self.main_splitter.setSizes([int(self.width() * 0.20), int(self.width() * 0.50), int(self.width() * 0.30)])
 
     def create_mode_selector_tool_bar(self):
@@ -196,6 +170,7 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
         self.mode_selector_tool_bar.setFloatable(False)
         self.mode_selector_tool_bar.setOrientation(Qt.Orientation.Horizontal)
         self.mode_selector_tool_bar.setHidden(False)
+        self.mode_selector_tool_bar.setContentsMargins(2,2,2,2)
         self.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.mode_selector_tool_bar)
         self.mode_selector_tool_bar.setFixedHeight(40)
 
@@ -233,45 +208,17 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
         self.set_mode()
 
         # Login Window
-        self.login_widget = QtWidgets.QWidget()
-        self.login_ui = LoginUI()
-        self.login_ui.setupUi(self.login_widget)
-        self.login_widget.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
-        self.login_widget.setWindowIcon(QIcon(self.application_icon_pixmap))
-        self.login_ui.twitter_button.setIcon(QIcon(self.load_icon("twitter-icon.ico")))
-        self.login_ui.discord_button.setIcon(QIcon(self.load_icon("discord-icon.ico")))
-        self.login_ui.github_button.setIcon(QIcon(self.load_icon("github-icon.ico")))
-        self.login_ui.github_button.clicked.connect(self.github_button_clicked)
-        self.login_ui.discord_button.clicked.connect(self.discord_button_clicked)
-        self.login_ui.twitter_button.clicked.connect(self.twitter_button_clicked)
-        self.login_ui.create_new_user_button.clicked.connect(self.create_new_user_button_clicked)
-        self.login_widget.show() # We'll conditionally initiate this in start() later
-
-        # User Creation Window
-        self.user_creation_widget = QtWidgets.QWidget()
-        self.user_creation_ui = UserCreationUI()
-        self.user_creation_ui.setupUi(self.user_creation_widget)
-        self.user_creation_widget.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
-        self.user_creation_widget.setWindowIcon(QIcon(self.application_icon_pixmap))
-
+        self.login_window = LoginWindow()
+        self.login_window.show()
+        
         # Chat interface widget
         self.chat_interface_widget = QtWidgets.QWidget()
-        self.chat_interface_ui = ChatInterfaceUI()
-        self.chat_interface_ui.setupUi(self.chat_interface_widget)
-        self.chat_stacked_widget.addWidget(self.chat_interface_widget)
-        self.tts_on_button_icon_pixmap = self.load_icon("button-tts-on.ico")
-        self.tts_off_button_icon_pixmap = self.load_icon("button-tts-off.ico")
-        self.stt_on_button_icon_pixmap = self.load_icon("button-stt-on.ico")
-        self.stt_off_button_icon_pixmap = self.load_icon("button-stt-off.ico")
-        self.chat_interface_ui.tts_button.setIcon(QIcon(self.tts_off_button_icon_pixmap))
-        self.chat_interface_ui.stt_button.setIcon(QIcon(self.stt_off_button_icon_pixmap))
-        self.chat_interface_ui.generate_text_button.setIcon(QIcon(self.load_icon("button-generate-text.ico")))
-        self.chat_interface_ui.generate_image_button.setIcon(QIcon(self.load_icon("button-generate-image.ico")))
-        self.chat_interface_ui.tts_button.clicked.connect(self.toggle_text_to_speech)
-        self.chat_interface_ui.stt_button.clicked.connect(self.toggle_speech_to_text)
-        self.chat_interface_ui.generate_text_button.clicked.connect(self.generate_response)
-        self.chat_interface_ui.generate_image_button.clicked.connect(self.generate_image)
-
+        self.chat_interface = ChatInterface(self.chat_interface_widget)
+        self.chat_stacked_widget.addWidget(self.chat_interface_widget)        
+        self.chat_interface.tts_button.clicked.connect(self.toggle_text_to_speech)
+        self.chat_interface.stt_button.clicked.connect(self.toggle_speech_to_text)
+        self.chat_interface.generate_text_button.clicked.connect(self.generate_response)
+        self.chat_interface.generate_image_button.clicked.connect(self.generate_image)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
