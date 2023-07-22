@@ -1,9 +1,8 @@
-from collections import deque
+
 from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtGui import QPixmap, QImage, QCursor, QPainter, QPainterPath, QPen, QColor
-from PyQt6.QtWidgets import QGraphicsScene, QStyleOptionGraphicsItem, QGraphicsRectItem, QGraphicsEllipseItem, QGraphicsLineItem, QGraphicsPathItem
-from PyQt6.QtCore import Qt, QRectF, QLineF
-import importlib.resources
+from PyQt6.QtGui import QColor
+from PyQt6.QtWidgets import QGraphicsScene
+from PyQt6.QtCore import Qt
 
 # Constants
 SCENE_RECT_MULTIPLE = 2

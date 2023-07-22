@@ -2,9 +2,8 @@
 from gui.modes.mode_base import ModeBase
 from gui.modes.blueprint_mode.blueprint_view import BlueprintView
 from gui.modes.blueprint_mode.blueprint_controls_widget import Ui_Form as BlueprintControlUI
-from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtCore import Qt
-from PyQt6 import QtWidgets, QtGui, QtCore
+from PyQt6 import QtWidgets
 
 class BlueprintMode(ModeBase):
     def __init__(self, parent):

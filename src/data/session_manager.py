@@ -1,198 +1,251 @@
 import os
-from cryptography.fernet import Fernet
-from pathlib import Path
+import sys
 from datetime import datetime
-from local import constants
+from src.data.schema import User, Base, SecureKey, GeneratedImage
 
-from sqlalchemy import create_engine, Column, Integer, String, Boolean
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy_utils import EncryptedType
-from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine
 from passlib.context import CryptContext
 
-Base = declarative_base()
-
-
-class User(Base):
-    __tablename__ = 'users'    
-    id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True)
-    password = Column(String)
-    online = Column(Boolean)
-    openai_api_key = Column(EncryptedType(String, 'openai_api_key', AesEngine, 'pkcs5'))
-    role = Column(String)
-    created_at = Column(String)
-    last_login = Column(String)
+from pathlib import Path
+import src.data.data_utils as data_utils
 
 
 class SessionManager:
     """Manages the creation, reading, and writing of files and databases."""
-
-    def __init__(self, app_name, key):
-        self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        # print("Pwd context: " + str(self.pwd_context))
-        # Setup session variables
+    def __init__(self):
         self.start_time = datetime.now()
+        # If the local directory exists, use it. Otherwise, use the user's documents directory.
         self.base_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'local')
-        self.docs_dir = Path.home() / 'Documents' / app_name
-        self.pref_dir = self.base_dir    
+        if not os.path.exists(self.base_dir):
+            self.base_dir = Path.home() / 'Documents' / 'Omniverse'   
+            data_utils.ensure_dir_exists(self.base_dir)
+
+        self.public_dir = os.path.join(self.base_dir, 'public')
+        self.users_dir = os.path.join(self.base_dir, 'users')
         self.users_db_path = os.path.join(self.base_dir, 'users.db')
-        self.encryption_key = key
-        self.current_user = None
-        self.current_user_name = constants.DEFAULT_USER_NAME # Just for testing 
-        self.preferred_output_dir = None
-        self.engine = None
-        self.session = None
+
+        self.users_engine = None # The engine for the users database
+
+        self.user_dir = None # The current user's personal directory
+
+        self.vault_engine = None # The engine for the user's key vault database
+        self.gallery_engine = None # The engine for the public generated image gallery database
+        self.users_session = None # The session for the users database
+        self.vault_session = None # The session for the user's key vault database
+        self.current_user = None 
+        self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
         self.setup()
 
-    ####################################################################################################
-    # Database operations
-    ####################################################################################################
     def setup(self):
         """Sets up the data manager by creating the base directory and users database."""
-        # Check if the base directory exists
-        os.environ["OPENAI_API_KEY"] = constants.OPENAI_API_KEY # We'll modify and move this to login method later
-        
-
         if not os.path.exists(self.base_dir):
             # Create the base directory
-            self.ensure_dir_exists(self.base_dir)
+            data_utils.ensure_dir_exists(self.base_dir)
        
         # Check if the engine is already created
-        if self.engine is None:
-            # Create the engine
-            self.engine = create_engine('sqlite:///' + self.users_db_path)        
-        Base.metadata.create_all(self.engine)
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
+        self.users_engine = create_engine('sqlite:///' + self.users_db_path)        
+        Base.metadata.create_all(self.users_engine)
+        Session = sessionmaker(bind=self.users_engine)
+        self.users_session = Session()
+        self.create_workspace_directories()
 
-        # if no users exist, create a default admin user
-        if self.session.query(User).count() == 0:
-            self.create_user("admin", "admin", "password", "None")
-        
-        
-    def create_user(self, name, role, password, openai_api_key):
+    def create_workspace_directories(self):
+        # Let's also make sure there is a public directory
+        data_utils.ensure_dir_exists(self.public_dir)
+        # Within the public directory, let's make sure there are subdirectories for images, logs, transcripts, and templates
+        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "images")))
+        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "logs")))
+        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "transcripts")))
+        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "templates")))
+        # Let's also make sure there is a users directory
+        data_utils.ensure_dir_exists(self.users_dir)
+
+
+
+    def create_user(self, name, role, input_password, api_key=None):
         """Creates a new user and adds them to the users database."""
-        created_at = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
-        last_login = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
-        hashed_password = self.pwd_context.hash(password)
+        print("Creating user")
+        if not name or not role or not input_password:
+            raise ValueError("All fields are required")
+        
+        if self.users_session is not None and self.users_session.query(User).filter_by(name=name).first():
+            raise ValueError(f"User {name} already exists")
+        
+        created_at = datetime.now()
+        last_login = datetime.now()
+        hashed_password = self.pwd_context.hash(input_password)
+        encrypted_hashed_password = data_utils.encrypt(hashed_password)
+        remember_me = False
+        encrypted_remember_me = data_utils.encrypt(remember_me)
 
         user = User(name=name, 
-                    password=hashed_password, 
-                    openai_api_key=openai_api_key, 
+                    password=encrypted_hashed_password,
+                    remember_me=encrypted_remember_me,
+                    role=role,
                     online=False,
-                    role=role, 
+                    display_name=name,
                     created_at=created_at, 
                     last_login=last_login)
-        self.session.add(user)
-        self.session.commit()
-
+        
+        self.users_session.add(user)
+        self.users_session.commit()
         self.current_user = user
 
-        # Create the user's output directories
-        self.ensure_dir_exists(user.preferred_output_dir)
-        self.ensure_dir_exists(str(os.path.join(self.preferred_output_dir, "images")))
-        self.ensure_dir_exists(str(os.path.join(self.preferred_output_dir, "logs")))
-        self.ensure_dir_exists(str(os.path.join(self.preferred_output_dir, "models")))
-        self.ensure_dir_exists(str(os.path.join(self.preferred_output_dir, "transcripts")))
+        self.user_dir = os.path.join(self.users_dir, name)
+        self.create_user_files()
 
-    
-    def update_user(self, name, field, new_value):
-        """Updates the specified field for a user."""
-        user = self.session.query(User).filter_by(name=name).first()
-        if user:
-            setattr(user, field, new_value)
-            self.session.commit()
-    
-    def login_user(self, name, password):
-        """Logs in a user if the password is correct."""
-        user = self.session.query(User).filter_by(name=name).first()
-        if user and self.pwd_context.verify(password, user.password):
-            self.current_user_name = user
-            user.last_login = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
-            self.session.commit()
-            return True
-        return False
-    
+         # Let's make a key vault for the user
+        vault_path = os.path.join(self.user_dir, f'{name}-vault.db')
+        self.vault_engine = create_engine('sqlite:///' + vault_path)
+        Base.metadata.create_all(self.vault_engine)
+        Session = sessionmaker(bind=self.vault_engine)
+        self.vault_session = Session()
+
+        # Let's encrypt the api key and add it as the default key
+        if self.vault_session is not None:
+            encrypted_api_key = data_utils.encrypt(api_key)
+            self.vault_session.add(SecureKey(name='default', 
+                                             provider='OpenAI', 
+                                             key=encrypted_api_key, 
+                                             created_at=datetime.now(), 
+                                             last_used=datetime.now()))
+            self.vault_session.commit()
+
+    def create_user_files(self):
+        """Creates a user's output directory."""
+        data_utils.ensure_dir_exists(self.user_dir)
+        data_utils.ensure_dir_exists(str(os.path.join(self.user_dir, "logs")))
+        data_utils.ensure_dir_exists(str(os.path.join(self.user_dir, "transcripts")))
+
+       
+
+    def login_user(self, name, password, remember_me):
+        if not name or not password:
+            print("Name and password are required")
+            return False
+                
+        user = self.users_session.query(User).filter_by(name=name).first()
+        if not user:
+            print(f"User {name} does not exist")
+            return False
+        
+        # Check if the user is not remembered or if the password is incorrect
+        if not data_utils.decrypt(user.remember_me) and not self.pwd_context.verify(password, data_utils.decrypt(user.password)):
+            print("Incorrect password")
+            return False
+            
+        user.online = True
+        user.last_login = datetime.now()  
+        user.remember_me = data_utils.encrypt(remember_me)  
+        self.current_user = user
+        self.user_dir = os.path.join(self.users_dir, name)
+            
+        self.users_session.commit()
+        vault_path = os.path.join(self.user_dir, f'{name}-vault.db')
+        self.vault_engine = create_engine('sqlite:///' + vault_path)
+        Base.metadata.create_all(self.vault_engine)
+        Session = sessionmaker(bind=self.vault_engine)
+        self.vault_session = Session()
+
+        return True
+
     def logout_user(self):
-        """Logs out the current user."""
-        self.current_user_name = None
+        if not self.current_user:
+            raise ValueError("No user is currently logged in")
+        self.current_user.online = False
+        self.users_session.commit()
+        self.current_user = None
 
     def is_admin(self, name):
-        """Checks if a user is an admin."""
-        user = self.session.query(User).filter_by(name=name).first()
-        return user.role == 'admin'
+        if not name:
+            raise ValueError("All fields are required")
+        user = self.users_session.query(User).filter_by(name=name).first()
+        if not user:
+            raise UserDoesNotExist(f"User {name} does not exist")        
+        return user.role == 'Admin'
+
+    def get_user_by_name(self, name):
+        if self.users_session is not None and name:
+            user = self.users_session.query(User).filter_by(name=name).first()
+            return user
+        else:
+            return None
 
     def get_all_users(self):
-        """Returns all users in the database."""
-        return self.session.query(User).all()
+        return self.users_session.query(User).all()
     
-    def get_user_data(self, name):
-        """Fetches a user's data based on their name."""
-        user = self.session.query(User).filter_by(name=name).first()
-        return user
+    def get_all_user_names_by_last_login(self):
+        names = []
+        if self.users_session is not None:
+            for user in self.users_session.query(User).order_by(User.last_login.desc()):
+                names.append(user.name)
+            return names
+        else:
+            return None
     
     def delete_user(self, name):
-        """Deletes a user from the database."""
-        if not self.is_admin(self.current_user_name):
-            raise Exception('Only admins can delete users.')
-        user = self.session.query(User).filter_by(name=name).first()
-        if user:
-            self.session.delete(user)
-            self.session.commit()
-
-    def reset_password(self, name, new_password):
-        """Resets a user's password."""
-        user = self.session.query(User).filter_by(name=name).first()
-        if user:
-            hashed_password = self.pwd_context.hash(new_password)
-            user.password = hashed_password
-            self.session.commit()
-
-    
-
-
-
-    ####################################################################################################
-    # File operations
-    ####################################################################################################
-
-    def ensure_dir_exists(self, dir_path):
-        """Ensures a directory exists, creating it if necessary."""
-        os.makedirs(dir_path, exist_ok=True)
-
-    def get_full_path(self, relative_path):
-        """Returns the full path for a file or directory."""
-        return os.path.join(self.base_dir, relative_path)
-
-    def write_file(self, relative_path, data):
-        """Writes data to a file."""
-        full_path = self.get_full_path(relative_path)
-        with open(full_path, 'w') as f:
-            f.write(data)
-
-    def read_file(self, relative_path):
-        """Reads data from a file."""
-        full_path = self.get_full_path(relative_path)
-        with open(full_path, 'r') as f:
-            return f.read()
-
-    def write_encrypted_file(self, relative_path, data, key):
-        """Writes encrypted data to a file."""
-        cipher_suite = Fernet(key)
-        encrypted_data = cipher_suite.encrypt(data.encode('utf-8'))
-        self.write_file(relative_path, encrypted_data.decode('utf-8'))
-
-    def read_encrypted_file(self, relative_path, key):
-        """Reads encrypted data from a file and returns the decrypted data."""
-        cipher_suite = Fernet(key)
-        encrypted_data = self.read_file(relative_path).encode('utf-8')
-        decrypted_data = cipher_suite.decrypt(encrypted_data)
-        return decrypted_data.decode('utf-8')
-
-
-
-    
+        if not name:
+            raise ValueError("All fields are required")
+        user = self.users_session.query(User).filter_by(name=name).first()
+        if not user:
+            raise UserDoesNotExist(f"User {name} does not exist")
+        if not self.is_admin(self.current_user.name):
+            raise NotAdminUser('Only admins can delete users.')
         
+        self.users_session.delete(user)
+        self.users_session.commit()
 
+    def close(self):
+        print("Closing database connection")
+        if self.users_session is not None: self.users_session.close()
+        if self.vault_session is not None: self.vault_session.close()
+
+    def get_user_count(self):
+        """Returns the number of users in the users database."""
+        if self.users_session is not None:
+            return self.users_session.query(User).count()
+        else:
+            return 0
+    
+    def get_most_recent_user(self):
+        """Returns the most recently created user."""
+        if self.users_session is not None:
+            return self.users_session.query(User).order_by(User.created_at.desc()).first()
+        else:
+            return None
+    
+    def get_key_by_provider(self, provider):
+        """Returns the user's key from the key vault."""
+        if self.vault_session is not None:
+            return self.vault_session.query(SecureKey).filter_by(provider=provider).first()
+        else:
+            return None
+    
+    
+
+
+
+class UserDoesNotExist(Exception):
+    pass
+
+class IncorrectPassword(Exception):
+    pass
+
+class NotAdminUser(Exception):
+    pass
+
+class UserAlreadyExists(Exception):
+    pass
+
+class KeyDoesNotExist(Exception):
+    pass
+
+class KeyAlreadyExists(Exception):
+    pass
+
+class ImageDoesNotExist(Exception):
+    pass
+
+class ImageAlreadyExists(Exception):
+    pass

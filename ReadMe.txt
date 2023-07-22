@@ -9,7 +9,7 @@ Omniverse is a dynamic PyQt6 application that presents a robust interface for in
 The application has a mode selection toolbar at the top left of the window, which allows users to switch between various modes. Each mode can define additional toolbars that appear alongside the mode selection toolbar.
 
 Modes
-Omniverse has an abstract ModeBase class that serves as the blueprint for creating new modes. Each mode includes essential information such as its name, description, icon, control UI, and display object. Modes can also define sets of toolbars based on their specific needs.
+Omniverse has an abstract ModeBase class that serves as the template for creating new modes. Each mode includes essential information such as its name, description, icon, control UI, and display object. Modes can also define sets of toolbars based on their specific needs.
 
 The application currently has three modes under development:
 
@@ -27,11 +27,19 @@ Directories
 * llms: Manages interaction with language learning models. It includes callback managers, memory classes for managing the context and groundings, and dynamic chain classes to switch the system prompt template based on the current protocol.
 
 Future Plans
-We are continuously improving and adding new features to the application. In the pipeline, we have plans to implement functionalities such as audio recording, speech-to-text integration, user login process, and a persona-focused multi-agent system for managing language learning models.
+We are continuously improving and adding new features to the application. In the pipeline, we have plans to implement functionalities such as audio recording, speech-to-text integration, user login process, and a persona-focused multi-agent system for managing language models.
 
 Note
 Users looking to utilize the program currently need to create their own /local/constants.py file with session details. A user-friendly login process is under development and will be integrated soon.
 
+pyuic6 -o gui\omniverse_main.py -x gui\omniverse_main.ui
+pyuic6 -o gui\components\workspace_creation_widget.py -x gui\components\workspace_creation_widget.ui
+pyuic6 -o gui\components\user_creation_widget.py -x gui\components\user_creation_widget.ui
+pyuic6 -o src\gui\components\chat_interface_widget.py -x src\gui\components\chat_interface_widget.ui
+pyuic6 -o gui\modes\canvas_mode\canvas_controls_widget.py -x gui\modes\canvas_mode\canvas_controls_widget.ui
+pyuic6 -o gui\components\presentation_controls_widget.py -x gui\components\presentation_controls_widget.ui  
+pyuic6 -o gui\modes\blueprint_mode\blueprint_controls_widget.py -x gui\modes\blueprint_mode\blueprint_controls_widget.ui
+pyuic6 -o gui\components\login_widget.py -x gui\components\login_widget.ui
 
 
 

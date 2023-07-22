@@ -1,16 +1,18 @@
-from local import constants
 from src.art.art_generator_base import ArtGeneratorBase
 import requests
-import os
+from src.data import data_utils
 
 class DALLEGenerator(ArtGeneratorBase):
-    def __init__(self):
-        self.api_key = constants.OPENAI_API_KEY
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        print(f"DALLEGenerator session: {self.session}")
+        # print(f"DALLEGenerator test key: {self.session.get_key('OpenAI')}")
+        pass
 
     def generate_image(self, prompt: str, num_images=1, size="256x256"):
         print(f"Generating image with prompt: {prompt}")
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "Authorization": f"Bearer {data_utils.decrypt(self.session.get_key_by_provider('OpenAI').key)}",
             "Content-Type": "application/json",
         }
         # print("Headers: " + str(headers))

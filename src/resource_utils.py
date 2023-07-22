@@ -1,7 +1,7 @@
 # utils.py
+import os
 from importlib.resources import files
-from PyQt6.QtGui import QImage, QPixmap, QCursor, QIcon
-from PyQt6.QtWidgets import QPushButton
+from PyQt6.QtGui import QImage, QPixmap, QCursor
 from PyQt6 import QtCore
 
 def load_icon(resource):

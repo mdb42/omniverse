@@ -1,6 +1,5 @@
 from gui.modes.canvas_mode.draw_action_base import DrawActionBase
-from PyQt6.QtGui import QPainterPath
-from PyQt6.QtWidgets import QGraphicsPathItem, QGraphicsPixmapItem
+from PyQt6.QtWidgets import QGraphicsPixmapItem
 from PyQt6 import QtCore
 
 class ImageAction(DrawActionBase):

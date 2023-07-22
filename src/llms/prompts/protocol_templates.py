@@ -30,7 +30,7 @@ Sentiment: {sentiment_analysis}
 
 
 STORYTELLER_PREFIX_MESSAGES = [{"role": "system", "content": "Guide the user as a player through a game session of Dungeons and Dragons."},
-                        {"role": "assistant", "content": "Greetings, Matthew!"}]
+                        {"role": "assistant", "content": "Greetings!"}]
 
 
 

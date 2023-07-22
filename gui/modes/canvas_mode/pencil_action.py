@@ -2,8 +2,6 @@ from gui.modes.canvas_mode.draw_action_base import DrawActionBase
 from PyQt6.QtGui import QPainterPath
 from PyQt6.QtWidgets import QGraphicsPathItem
 from PyQt6 import QtCore
-from PyQt6.QtGui import QCursor
-from PyQt6.QtCore import Qt
 
 class PencilAction(DrawActionBase):
     def __init__(self, *args, **kwargs):

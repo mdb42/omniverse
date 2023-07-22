@@ -6,8 +6,10 @@ import os
 from datetime import datetime
 
 class ArtManager:
-    def __init__(self):
-        self.generator = DALLEGenerator()
+    def __init__(self, *args, **kwargs):
+        self.session = kwargs.get('session', None)
+        print(f"ArtManager session: {self.session}")
+        self.generator = DALLEGenerator(session=self.session)
         self.generated_image_data = None
 
     def generate_image(self, prompt: str):
@@ -26,7 +28,7 @@ class ArtManager:
         print("Saving image to file (2/2)...")
         if self.generated_image_data is not None:
             current_date = datetime.now().strftime("%Y%m%d-%H%M%S")
-            directory = "local/public/images"
+            directory = os.path.join(self.session.public_dir, "images")
             os.makedirs(directory, exist_ok=True)
             image_file_path = f"{directory}/{current_date}.png"
             print(f"Image saved to {image_file_path}")

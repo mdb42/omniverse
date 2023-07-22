@@ -1,9 +1,8 @@
 import sys
-from local import constants
 from gui import omniverse_main
-from importlib.resources import files
+import keyring
 
-from src import utils
+from src import resource_utils
 from src.data.session_manager import SessionManager
 from src.audio.audio_manager import AudioManager
 from src.art.art_manager import ArtManager
@@ -18,6 +17,8 @@ from gui.modes.blueprint_mode.blueprint_mode import BlueprintMode
 from gui.components.chat_interface import ChatInterface
 
 from gui.components.login_window import LoginWindow
+from gui.components.user_creation_window import UserCreationWindow
+from gui.components.workspace_creation_window import WorkspaceCreationWindow
 
 from PyQt6 import QtWidgets
 from PyQt6.QtWidgets import QApplication
@@ -25,14 +26,14 @@ from PyQt6.QtGui import QPixmap, QIcon, QTextCursor
 from PyQt6.QtCore import QTimer, Qt
 
 
-
 TITLE = "Omniverse"
-VERSION = "0.0.6"
+VERSION = "0.0.7"
 FRAMES_PER_SECOND = 66
+DEFAULT_AI_NAME = "Govinda"
 
 class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
     """This window is the primary interface for the Omniverse application. It allows different
-    graphical display objects to be presented in the main window, with two splitter panels:
+    graphical display objects to be presented in the main window with two side splitter panels:
     one on the left for the control panel, and one on the right for the chat interface.
     The application tracks a mode state, which is used to determine which graphical display
     object is currently being presented in the main window. The mode state also updates the
@@ -41,12 +42,30 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
     engage with information gathered from the given display."""
     def __init__(self, parent=None):
         super(Omniverse, self).__init__(parent)
-        self.setupUi(self)  
-        self.session = SessionManager(app_name=TITLE, key=constants.DEFAULT_ENCRYPTION_KEY)
-        self.mode_index = 0  # The index of the current mode
+        self.setupUi(self)
+        self.login_window = None
+        self.user_creation_window = None
+        self.workspace_creation_window = None
+
+        self.session = SessionManager()
+        
+        if keyring.get_password("Omniverse", "Workspace") is None:
+            print("Omniverse workspace not in keyring. New workspace creation required.")
+            self.workspace_creation_window = WorkspaceCreationWindow()
+            self.workspace_creation_window.workspace_created_signal.connect(self.workspace_created)
+            self.workspace_creation_window.show()
+        
+        # keyring.delete_password("Omniverse", "Workspace") # Uncomment to reset workspace encryption key
+        
+        self.mode_index = 0 
         self.modes = [PresentationMode(parent=self), CanvasMode(parent=self), BlueprintMode(parent=self)]
         
         self.initialize_gui()
+
+        if self.session.get_user_count() > 0:
+            self.start_login()
+        elif keyring.get_password("Omniverse", "Workspace") is not None:
+            self.create_new_user()
 
         # Initialize a QTimer for continuous constant advancement
         self.frame_timer = QTimer(self)
@@ -54,9 +73,7 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
         self.frame_timer.start(int(1000/FRAMES_PER_SECOND))
 
         # Setup the language model manager
-        # These callbacks are only for the prototype implementation
-        # TODO: Remove these callbacks and replace with a json file defining completion batch sequences
-        self.assistant_id = constants.DEFAULT_AI_NAME
+        # TODO: Dynamically generate this from json data
         self.browser_callbacks = {
             "response": BaseCallbackManager([StreamingBrowserCallbackHandler(self.chat_interface.chat_output_browser)]),
             "sentiment": BaseCallbackManager([StreamingBrowserCallbackHandler(self.modes[2].control_ui.sentiment_browser)]),
@@ -65,22 +82,25 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
             "summary": BaseCallbackManager([StreamingBrowserCallbackHandler(self.modes[2].control_ui.summary_browser)])
         }
 
-        self.llm_manager = LLMManager(self.browser_callbacks, "Matthew", self.assistant_id)
+        self.llm_manager = LLMManager(session=self.session, 
+                                      browser_callbacks=self.browser_callbacks, 
+                                      assistant_id=DEFAULT_AI_NAME)
         self.current_user_prompt = ""
         self.current_generated_response = ""
 
         # Setup the AI art manager
-        self.art_manager = ArtManager()
+        self.art_manager = ArtManager(session=self.session)
         self.current_generated_image = None
 
         # Setup the audio manager
         self.audio = AudioManager()
-        self.audio.play_sound_effect("click") # For testing
+        # self.audio.play_sound_effect("click") # For testing
 
     def advance(self):
+        """ Advance the application by one frame."""
         delta_time = self.frame_timer.interval() / 1000.0
-        for test_mode in self.modes:
-            test_mode.advance(delta_time)
+        for mode in self.modes:
+            mode.advance(delta_time)
 
     def preprocessing(self):
         """ Perform all preprocessing events, ending with the LLM preprocessor."""
@@ -93,13 +113,14 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
         self.llm_manager.preprocessing(self.current_user_prompt)
   
     def generate_response(self):
+        """ Generate a response from the current user prompt."""
         self.current_user_prompt = self.chat_interface.chat_input_text_editor.toPlainText().rstrip()
-        self.chat_interface.chat_output_browser.append("\n" + str(self.session.current_user_name + ": " + self.current_user_prompt + "\n"))
+        self.chat_interface.chat_output_browser.append("\n" + str(self.session.current_user.name + ": " + self.current_user_prompt + "\n"))
         self.chat_interface.chat_input_text_editor.clear()
         self.chat_interface.chat_input_text_editor.setFocus()
         print("Generating Response")
         self.set_cursor_to_end(self.chat_interface.chat_output_browser)
-        self.chat_interface.chat_output_browser.append(self.assistant_id + ": ")
+        self.chat_interface.chat_output_browser.append(DEFAULT_AI_NAME + ": ")
         self.preprocessing()
         self.current_generated_response = self.llm_manager.generate_response()
         self.postprocessing()
@@ -116,13 +137,14 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
         print("Finished LLM Manager Post Processing")
     
     def set_cursor_to_end(self, browser):
-        # Set the cursor to the end of the browser, preventing the llm from overwriting the chat history
+        """Set the cursor to the end of the browser, preventing the llm from overwriting the chat history."""
         cursor = browser.textCursor()
         cursor.movePosition(QTextCursor.MoveOperation.End)
         browser.setTextCursor(cursor)
         browser.ensureCursorVisible()
     
     def generate_image(self):
+        """ Generate an image from the current user prompt."""
         self.status_bar.showMessage("Generating Image...")
         prompt = self.chat_interface.chat_input_text_editor.toPlainText().rstrip()
         QtWidgets.QApplication.processEvents()
@@ -138,6 +160,7 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
             self.status_bar.showMessage("Image Generation Failed")
 
     def toggle_text_to_speech(self):
+        """ Toggle text to speech on and off."""
         self.audio.text_to_speech = not self.audio.text_to_speech
         if self.audio.text_to_speech:
             self.chat_interface.tts_button.setIcon(QIcon(self.chat_interface.tts_on_button_icon_pixmap))
@@ -145,6 +168,7 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
             self.chat_interface.tts_button.setIcon(QIcon(self.chat_interface.tts_off_button_icon_pixmap))
 
     def toggle_speech_to_text(self):
+        """ Toggle speech to text on and off."""
         self.audio.speech_to_text = not self.audio.speech_to_text
         if self.audio.speech_to_text:
             self.chat_interface.stt_button.setIcon(QIcon(self.chat_interface.stt_on_button_icon_pixmap))
@@ -152,6 +176,7 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
             self.chat_interface.stt_button.setIcon(QIcon(self.chat_interface.stt_off_button_icon_pixmap))
     
     def set_mode(self):
+        """ Set the current mode."""
         self.mode_index = self.mode_selector_button_group.checkedId()
         self.displays_stacked_widget.setCurrentIndex(self.mode_index)
         self.controls_stacked_widget.setCurrentIndex(self.mode_index)
@@ -160,11 +185,13 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
                 tool_bar.setVisible(mode_index == self.mode_index)
 
     def setup_window(self):
+        """ Setup the main window."""
         self.setWindowTitle(f"{TITLE} {VERSION}")
-        self.setWindowIcon(QIcon(utils.load_icon("application-icon.ico")))
+        self.setWindowIcon(QIcon(resource_utils.load_icon("application-icon.ico")))
         self.main_splitter.setSizes([int(self.width() * 0.20), int(self.width() * 0.50), int(self.width() * 0.30)])
 
     def create_mode_selector_tool_bar(self):
+        """ Create the mode selector tool bar."""
         self.mode_selector_tool_bar = QtWidgets.QToolBar(self)
         self.mode_selector_tool_bar.setMovable(False)
         self.mode_selector_tool_bar.setFloatable(False)
@@ -175,6 +202,7 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
         self.mode_selector_tool_bar.setFixedHeight(40)
 
     def add_modes(self):
+        """ Add the modes to the application."""
         self.mode_selection_widget = QtWidgets.QWidget()
         self.mode_selection_layout = QtWidgets.QHBoxLayout()
         self.mode_selection_widget.setLayout(self.mode_selection_layout)
@@ -200,17 +228,64 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
             self.displays_stacked_widget.addWidget(mode.display)
             self.controls_stacked_widget.addWidget(mode.control_widget)
 
+    def login_successful(self):
+        """ Perform actions after a successful login."""
+        self.status_bar.showMessage(f"Logged in as {self.session.current_user.name}")
+        self.session.setup()
+        self.llm_manager.setup()
+        if not self.isActiveWindow():
+            self.activateWindow()
+        self.raise_()
+    
+    def start_login(self):
+        """ Start the login process."""
+        self.login_window = LoginWindow(session=self.session)
+        self.login_window.window_closed_signal.connect(self.on_exit)
+        self.login_window.login_successful_signal.connect(self.login_successful)
+        self.login_window.create_new_user_signal.connect(self.create_new_user)
+        self.login_window.show()
+
+    def new_user_created(self):
+        """ Perform actions after a new user is created."""
+        self.user_creation_window.hide()
+        self.start_login()
+        self.status_bar.showMessage(f"New user created: {self.session.get_most_recent_user().name}")
+        if not self.isActiveWindow():
+            self.activateWindow()
+        self.raise_()
+        
+    def create_new_user(self):
+        """ Create a new user."""
+        if self.login_window is not None: self.login_window.hide()
+        # User Creation Window
+        self.user_creation_window = UserCreationWindow(session=self.session)
+        self.user_creation_window.user_created_signal.connect(self.new_user_created)
+        self.user_creation_window.show()
+
+    def on_exit(self):
+        """ Close the application. """
+        print("Leaving the Omniverse")
+        self.session.close()
+        self.close()
+        print("Goodbye!")
+
+    def workspace_created(self):
+        """ Perform actions after a new workspace is created."""
+        key = self.workspace_creation_window.get_key()
+        if key is not None and key != "":
+            keyring.set_password("Omniverse", "Workspace", key)
+            self.login_window = LoginWindow(session=self.session) # Reset the login window
+            self.workspace_creation_window.close()
+            self.create_new_user()
+
     def initialize_gui(self):
         """ Initialize the GUI. """
         self.setup_window()
         self.create_mode_selector_tool_bar()
         self.add_modes()
         self.set_mode()
+        self.show()
 
-        # Login Window
-        self.login_window = LoginWindow()
-        self.login_window.show()
-        
         # Chat interface widget
         self.chat_interface_widget = QtWidgets.QWidget()
         self.chat_interface = ChatInterface(self.chat_interface_widget)
@@ -219,11 +294,12 @@ class Omniverse(QtWidgets.QMainWindow, omniverse_main.Ui_MainWindow):
         self.chat_interface.stt_button.clicked.connect(self.toggle_speech_to_text)
         self.chat_interface.generate_text_button.clicked.connect(self.generate_response)
         self.chat_interface.generate_image_button.clicked.connect(self.generate_image)
+       
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = Omniverse()
-    window.show()
+    app.aboutToQuit.connect(window.on_exit)
     sys.exit(app.exec())
 
 

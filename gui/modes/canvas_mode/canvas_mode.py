@@ -9,7 +9,7 @@ from gui.modes.canvas_mode.open_file_action import OpenFileAction
 from gui.modes.canvas_mode.new_file_action import NewFileAction
 from gui.modes.canvas_mode.save_file_action import SaveFileAction
 
-from PyQt6.QtWidgets import QButtonGroup, QPushButton
+from PyQt6.QtWidgets import QButtonGroup
 
 class CanvasMode(ModeBase):
     def __init__(self, parent):   

@@ -1,11 +1,7 @@
 from abc import ABC, abstractmethod
 from PyQt6.QtWidgets import QGraphicsItem
-from PyQt6.QtGui import QCursor, QPixmap, QImage
 from gui.modes.action_base import ActionBase
-from PyQt6.QtCore import Qt
-from importlib.resources import files
-from PyQt6 import QtCore
-from src import utils
+from src import resource_utils
 
 
 class DrawActionBase(ActionBase, ABC):
@@ -23,7 +19,7 @@ class DrawActionBase(ActionBase, ABC):
         self.cursor_filename = kwargs.get('cursor_filename', self.icon_filename)
         self.cursor_hot_x = kwargs.get('cursor_hot_x', 0)
         self.cursor_hot_y = kwargs.get('cursor_hot_y', 0)
-        self.cursor = utils.load_cursor(self.cursor_filename, self.cursor_hot_x, self.cursor_hot_y)  
+        self.cursor = resource_utils.load_cursor(self.cursor_filename, self.cursor_hot_x, self.cursor_hot_y)  
         
         self.persistent_cursor = kwargs.get('persistent_cursor', True)
         self.origin = kwargs.get('origin', None)

@@ -1,9 +1,8 @@
 from gui.modes.mode_base import ModeBase
 from gui.modes.presentation_mode.presentation_view import PresentationView
 from gui.modes.presentation_mode.presentation_controls_widget import Ui_Form as PresentationControlUI
-from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtCore import Qt
-from PyQt6 import QtWidgets, QtGui, QtCore
+from PyQt6 import QtWidgets
 
 class PresentationMode(ModeBase):
     def __init__(self, parent):

@@ -309,7 +309,7 @@
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QComboBox" name="username_combobox"/>
+           <widget class="QComboBox" name="name_combo_box"/>
           </item>
           <item row="1" column="1">
            <widget class="QLineEdit" name="password_line_edit">
@@ -361,14 +361,14 @@
          </spacer>
         </item>
         <item>
-         <widget class="QCheckBox" name="remember_password_checkbox">
+         <widget class="QCheckBox" name="remember_me_checkbox">
           <property name="font">
            <font>
             <pointsize>8</pointsize>
            </font>
           </property>
           <property name="text">
-           <string>Remember Password</string>
+           <string>Remember Me?</string>
           </property>
          </widget>
         </item>

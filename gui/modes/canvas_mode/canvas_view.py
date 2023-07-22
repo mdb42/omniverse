@@ -3,7 +3,6 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtGui import QPen, QBrush, QColor
 from PyQt6.QtWidgets import QGraphicsScene, QGraphicsPixmapItem
 from PyQt6.QtCore import Qt
-from importlib.resources import files
 from gui.modes.canvas_mode.pencil_action import PencilAction
 from gui.modes.canvas_mode.eraser_action import EraserAction
 from gui.modes.canvas_mode.line_action import LineAction

@@ -5,13 +5,12 @@ from langchain import BasePromptTemplate, LLMChain
 from langchain.schema import BaseMemory
 from langchain.base_language import BaseLanguageModel
 from pydantic import BaseModel
+from src.data.session_manager import SessionManager
 
-from local import constants
 from src.llms.prompts.memory_templates import SUMMARIZER_PROMPT, ENTITY_EXTRACTION_PROMPT, \
     KNOWLEDGE_TRIPLE_EXTRACTION_PROMPT, SENTIMENT_ANALYSIS_PROMPT
 
 import asyncio
-
 
 MESSAGE_BUFFER_LENGTH = 10
 SENTIMENT_HISTORY_LENGTH = 3
@@ -30,6 +29,8 @@ class DynamicMemory(BaseMemory, BaseModel):
     knowledge_extraction_prompt: BasePromptTemplate = KNOWLEDGE_TRIPLE_EXTRACTION_PROMPT
     sentiment_analysis_prompt: BasePromptTemplate = SENTIMENT_ANALYSIS_PROMPT
 
+    session: SessionManager = None
+    ai_name: str = "Govinda"
 
     session_messages: List = []
     message_buffer: List = []
@@ -101,7 +102,10 @@ class DynamicMemory(BaseMemory, BaseModel):
         new_summary = "Default summary."
         summarizer_chain = LLMChain(llm=self.summary_llm, prompt=self.summarizer_prompt)
         if len(self.message_buffer) > SUMMARY_HISTORY_LENGTH:
-            new_summary = await summarizer_chain.arun(current_summary=self.current_summary, chat_history=self.get_last_k_messages(SUMMARY_HISTORY_LENGTH))
+            new_summary = await summarizer_chain.arun(user_name = self.session.current_user.display_name, 
+                                                      ai_name=self.ai_name, 
+                                                      current_summary=self.current_summary, 
+                                                      chat_history=self.get_last_k_messages(SUMMARY_HISTORY_LENGTH))
         self.previous_summary = self.current_summary
         self.current_summary = new_summary
         return new_summary
@@ -124,7 +128,10 @@ class DynamicMemory(BaseMemory, BaseModel):
         chain = LLMChain(llm=self.entity_llm, prompt=self.entity_extraction_prompt)
         print("Entity chain created")
         if len(self.message_buffer) > ENTITY_HISTORY_LENGTH:
-            new_entities = await chain.arun(history=self.get_last_k_messages(ENTITY_HISTORY_LENGTH), input=self.current_input)
+            new_entities = await chain.arun(user_name=self.session.current_user.display_name, 
+                                            ai_name=self.ai_name, 
+                                            history=self.get_last_k_messages(ENTITY_HISTORY_LENGTH), 
+                                            input=self.current_input)
             print("New entities: ", new_entities)
         return new_entities
 
@@ -133,7 +140,10 @@ class DynamicMemory(BaseMemory, BaseModel):
         new_sentiment_analysis = "None"
         chain = LLMChain(llm=self.sentiment_llm, prompt=self.sentiment_analysis_prompt)
         if len(self.message_buffer) > SENTIMENT_HISTORY_LENGTH:
-            new_sentiment_analysis = await chain.arun(history=self.get_last_k_messages(SENTIMENT_HISTORY_LENGTH), input=self.current_input)
+            new_sentiment_analysis = await chain.arun(user_name=self.session.current_user.display_name, 
+                                                      ai_name=self.ai_name, 
+                                                      history=self.get_last_k_messages(SENTIMENT_HISTORY_LENGTH), 
+                                                      input=self.current_input)
             print("New sentiment analysis: ", new_sentiment_analysis)
         return new_sentiment_analysis
 
@@ -143,7 +153,10 @@ class DynamicMemory(BaseMemory, BaseModel):
         chain = LLMChain(llm=self.knowledge_llm, prompt=self.knowledge_extraction_prompt)
         print("New knowledge chain created")
         if len(self.message_buffer) > KNOWLEDGE_HISTORY_LENGTH:
-            new_knowledge = await chain.arun(history=self.get_last_k_messages(KNOWLEDGE_HISTORY_LENGTH), input=self.current_input)
+            new_knowledge = await chain.arun(user_name=self.session.current_user.display_name, 
+                                             ai_name=self.ai_name, 
+                                             history=self.get_last_k_messages(KNOWLEDGE_HISTORY_LENGTH), 
+                                             input=self.current_input)
             print("New knowledge: ", new_knowledge)
         return new_knowledge
 
