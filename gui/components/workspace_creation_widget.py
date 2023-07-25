@@ -12,8 +12,9 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 class Ui_Form(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(393, 436)
+        Form.resize(402, 256)
         self.gridLayout_2 = QtWidgets.QGridLayout(Form)
+        self.gridLayout_2.setVerticalSpacing(0)
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
@@ -23,7 +24,7 @@ class Ui_Form(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.prefix_text_browser.sizePolicy().hasHeightForWidth())
         self.prefix_text_browser.setSizePolicy(sizePolicy)
-        self.prefix_text_browser.setMinimumSize(QtCore.QSize(350, 110))
+        self.prefix_text_browser.setMinimumSize(QtCore.QSize(350, 35))
         self.prefix_text_browser.setMaximumSize(QtCore.QSize(16777215, 16777215))
         font = QtGui.QFont()
         font.setPointSize(9)
@@ -126,7 +127,7 @@ class Ui_Form(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.postfix_text_browser.sizePolicy().hasHeightForWidth())
         self.postfix_text_browser.setSizePolicy(sizePolicy)
-        self.postfix_text_browser.setMinimumSize(QtCore.QSize(350, 180))
+        self.postfix_text_browser.setMinimumSize(QtCore.QSize(350, 105))
         font = QtGui.QFont()
         font.setPointSize(9)
         self.postfix_text_browser.setFont(font)
@@ -162,7 +163,7 @@ class Ui_Form(object):
 "p, li { white-space: pre-wrap; }\n"
 "</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:9pt; font-weight:400; font-style:normal;\">\n"
 "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:8pt;\">As this seems to be your first time running the Omniverse application on this computer, we\'ll need you to set up an encryption key for security purposes.</span></p>\n"
-"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:8pt;\">The encryption key plays a crucial role in safeguarding your data and files. Keep it private and stored securely. If you suspect that your key is compromised, an admin user should change it promptly. Losing your key will render all encrypted data inaccessible. We recommend changing your encryption key periodically to ensure optimum security.</span></p></body></html>"))
+"<p style=\"-qt-paragraph-type:empty; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p></body></html>"))
         self.continue_button.setText(_translate("Form", "Continue"))
         self.welcome_label.setText(_translate("Form", "Welcome to the Omniverse"))
         self.echo_toggle_button.setToolTip(_translate("Form", "Toggle Visibility"))
@@ -172,10 +173,9 @@ class Ui_Form(object):
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
 "</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:9pt; font-weight:400; font-style:normal;\">\n"
-"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:8pt;\">All your files are locally stored, and we do not collect any data from your computer. The encryption key is securely stored via your operating system\'s native secrets management utilities, and it is used for Fernet encryption, which is built on top of AES, to secure your private data.</span></p>\n"
-"<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:8pt;\">User accounts are individually password protected. Each account has a private vault for storing API keys. Users can choose to store conversation transcripts in a shared public directory or their personal private directory. We utilize the PassLib library, a dedicated security library, for secure password management.</span></p>\n"
+"<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:8pt;\">The encryption key plays a crucial role in safeguarding your data and files. Keep it private and stored securely. If you suspect that your key is compromised, an admin user should change it promptly. We recommend changing your encryption key periodically to ensure optimum security.</span></p>\n"
 "<p style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:8pt;\">Keep in mind, if the encryption key is lost, it\'s not recoverable and all access to encrypted data will be lost.</span></p></body></html>"))
-        self.key_label.setText(_translate("Form", "Encryption Key:"))
+        self.key_label.setText(_translate("Form", "Encryption Key (Length: 44):"))
 
 
 if __name__ == "__main__":

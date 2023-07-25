@@ -1,12 +1,12 @@
 from gui.components.chat_interface_widget import Ui_Form as ChatInterfaceWidget
 from src import resource_utils
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QIcon
-from PyQt6 import QtCore
 
-tts_clicked_signal = QtCore.pyqtSignal(bool)
-stt_clicked_signal = QtCore.pyqtSignal(bool)
-generate_text_clicked_signal = QtCore.pyqtSignal(bool)
-generate_image_clicked_signal = QtCore.pyqtSignal(bool)
+tts_clicked_signal = pyqtSignal(bool)
+stt_clicked_signal = pyqtSignal(bool)
+generate_text_clicked_signal = pyqtSignal(bool)
+generate_image_clicked_signal = pyqtSignal(bool)
 
 class ChatInterface(ChatInterfaceWidget):
     def __init__(self, parent) -> None:

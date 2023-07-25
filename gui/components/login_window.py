@@ -1,26 +1,20 @@
 from gui.components.login_widget import Ui_Form as LoginWidget
-from src import resource_utils
-from PyQt6 import QtWidgets
-from PyQt6.QtCore import Qt
+from src import resource_utils, constants
+
+from PyQt6.QtWidgets import QWidget
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QIcon
-from PyQt6 import QtCore
 import webbrowser
-from importlib.resources import files
 import src.data.data_utils as data_utils
 
-GITHUB_URL = "https://github.com/mdb42/omniverse/tree/main"
-CREATOR_TWITTER_URL = "https://twitter.com/mdelbranson"
-DISCORD_URL = "https://discord.gg/98Qub3gdnY"
 
-
-
-class LoginWindow(QtWidgets.QWidget, LoginWidget):
+class LoginWindow(QWidget, LoginWidget):
     """The LoginWindow class that handles user interaction in the login form."""
 
-    login_successful_signal = QtCore.pyqtSignal(bool)
-    incorrect_password_signal = QtCore.pyqtSignal(bool)
-    create_new_user_signal = QtCore.pyqtSignal(bool)
-    window_closed_signal = QtCore.pyqtSignal(bool)
+    login_succeeded_signal = pyqtSignal(bool)
+    incorrect_password_entered_signal = pyqtSignal(bool)
+    create_new_user_clicked_signal = pyqtSignal(bool)
+    closed_signal = pyqtSignal(bool)
 
     def __init__(self, parent=None, session=None):
         """Initializes the login window, sets up the UI, and connects the signal and slots."""
@@ -63,7 +57,6 @@ class LoginWindow(QtWidgets.QWidget, LoginWidget):
         user = self.session.get_user_by_name(name)
         if user: 
             decrypted_remembered_status = data_utils.decrypt(user.remember_me)
-            print("Remembered Status: " + str(decrypted_remembered_status))
             if decrypted_remembered_status == True:
                 self.password_line_edit.setText("**********")
                 self.remember_me_checkbox.setChecked(True)
@@ -72,29 +65,47 @@ class LoginWindow(QtWidgets.QWidget, LoginWidget):
                 self.remember_me_checkbox.setChecked(False)
 
     def login_button_clicked(self):
-        """Slot for handling the event when the login button is clicked. It performs
-            the login process and emits appropriate signals."""
-        print("Login Button Clicked")
+        """Slot for handling the event when the login button is clicked."""
         username = self.name_combo_box.currentText()
         password = self.password_line_edit.text()
         remember_me = self.remember_me_checkbox.isChecked()
-        if self.session.login_user(username, password, remember_me):
-            print("Login Successful")
-            self.login_successful_signal.emit(True)
-            self.close()
-        else:
-            print("Login Failed")
-            self.feedback_label.setText("Incorrect Password")
-            self.feedback_label.setStyleSheet("color: red")
-            self.password_line_edit.setText("")
-            self.password_line_edit.setFocus()
-            self.incorrect_password_signal.emit(True)
+        
+        try:
+            if self.login(username, password, remember_me):
+                self.login_succeeded_signal.emit(True)
+                self.close()
+            else:
+                self.set_feedback_message("Incorrect Password", "red")
+                self.clear_password_field()
+                self.focus_password_field()
+                self.incorrect_password_entered_signal.emit(True)
+        except Exception as e:
+            self.log_exception(e)
+            self.set_feedback_message("Login Failed", "red")
+
+    def login(self, username, password, remember_me):
+        return self.session.login_user(username, password, remember_me)
+
+    def set_feedback_message(self, message, color):
+        self.feedback_label.setText(message)
+        self.feedback_label.setStyleSheet(f"color: {color}")
+
+    def clear_password_field(self):
+        self.password_line_edit.setText("")
+
+    def focus_password_field(self):
+        self.password_line_edit.setFocus()
+
+    def log_exception(self, exception):
+        # replace this with your logging system when ready
+        print(exception)
+
 
     def create_new_user_button_clicked(self):
         """Slot for handling the event when the create new user button is clicked. It
             opens the new user creation window and closes the login window."""
         print("Create New User Button Clicked")
-        self.create_new_user_signal.emit(True)
+        self.create_new_user_clicked_signal.emit(True)
         
     
     def password_line_edit_changed(self):
@@ -115,22 +126,21 @@ class LoginWindow(QtWidgets.QWidget, LoginWidget):
     def twitter_button_clicked(self):
         """Slot for handling the event when the Twitter button is clicked. 
            It opens the Twitter URL in the default web browser."""
-        webbrowser.open(CREATOR_TWITTER_URL)
+        webbrowser.open(constants.CREATOR_TWITTER_URL)
     
     def discord_button_clicked(self):
         """Slot for handling the event when the Discord button is clicked. 
            It opens the Discord URL in the default web browser."""
-        webbrowser.open(DISCORD_URL)
+        webbrowser.open(constants.DISCORD_URL)
     
     def github_button_clicked(self):
         """Slot for handling the event when the Github button is clicked. 
            It opens the Github URL in the default web browser."""
-        webbrowser.open(GITHUB_URL)
+        webbrowser.open(constants.GITHUB_URL)
     
     def closeEvent(self, event):
         """Reimplemented from QWidget class to handle the close event in the login window."""
-        if self.session.current_user is None:
-            self.window_closed_signal.emit(True)
+        self.closed_signal.emit(True)
         event.accept()
     
 

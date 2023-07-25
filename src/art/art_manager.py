@@ -28,7 +28,7 @@ class ArtManager:
         print("Saving image to file (2/2)...")
         if self.generated_image_data is not None:
             current_date = datetime.now().strftime("%Y%m%d-%H%M%S")
-            directory = os.path.join(self.session.public_dir, "images")
+            directory = os.path.join(self.session.public_dir, "Images", "Generated")
             os.makedirs(directory, exist_ok=True)
             image_file_path = f"{directory}/{current_date}.png"
             print(f"Image saved to {image_file_path}")

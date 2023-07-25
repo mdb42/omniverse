@@ -10,6 +10,12 @@ from passlib.context import CryptContext
 from pathlib import Path
 import src.data.data_utils as data_utils
 
+# TODO: Implementing more granular user role management and permissions. Requires: user management widget
+# TODO: Adding more features related to key management, like updating or removing a key. Requires: user settings widget with key table
+# TODO: Improving logging or adding more detailed error handling. Requires: Deciding on a logging method.
+# TODO: Implementing more features for the image gallery like saving, updating, or removing images. Requires: gallery widget
+# TODO: Creating more detailed methods for manipulating and retrieving data. Requires: Exploring ways data might be used.
+# TODO: Building out test cases to ensure that everything works as expected. Requires: Knowing the first thing about proper testing.
 
 class SessionManager:
     """Manages the creation, reading, and writing of files and databases."""
@@ -21,19 +27,24 @@ class SessionManager:
             self.base_dir = Path.home() / 'Documents' / 'Omniverse'   
             data_utils.ensure_dir_exists(self.base_dir)
 
-        self.public_dir = os.path.join(self.base_dir, 'public')
-        self.users_dir = os.path.join(self.base_dir, 'users')
-        self.users_db_path = os.path.join(self.base_dir, 'users.db')
+        self.public_dir = os.path.join(self.base_dir, 'Public')
+        self.users_dir = os.path.join(self.base_dir, 'Users')
+        self.users_db_path = os.path.join(self.users_dir, 'users.db')
 
         self.users_engine = None # The engine for the users database
-
+        self.users_session = None # The session for the users database
+        self.current_user = None 
         self.user_dir = None # The current user's personal directory
 
         self.vault_engine = None # The engine for the user's key vault database
-        self.gallery_engine = None # The engine for the public generated image gallery database
-        self.users_session = None # The session for the users database
         self.vault_session = None # The session for the user's key vault database
-        self.current_user = None 
+
+        self.gallery_path = os.path.join(self.public_dir, 'Images', 'gallery.db') # The path to the gallery database
+        self.gallery_engine = create_engine('sqlite:///' + self.gallery_path) # The engine for the gallery database
+        Base.metadata.create_all(self.gallery_engine) # Create the gallery database
+        Session = sessionmaker(bind=self.gallery_engine) # Create a session for the gallery database
+        self.gallery_session = Session() # The session for the gallery database
+        
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
         self.setup()
 
@@ -42,26 +53,30 @@ class SessionManager:
         if not os.path.exists(self.base_dir):
             # Create the base directory
             data_utils.ensure_dir_exists(self.base_dir)
+        
+        self.create_workspace_directories()
        
         # Check if the engine is already created
         self.users_engine = create_engine('sqlite:///' + self.users_db_path)        
         Base.metadata.create_all(self.users_engine)
         Session = sessionmaker(bind=self.users_engine)
         self.users_session = Session()
-        self.create_workspace_directories()
 
     def create_workspace_directories(self):
-        # Let's also make sure there is a public directory
-        data_utils.ensure_dir_exists(self.public_dir)
-        # Within the public directory, let's make sure there are subdirectories for images, logs, transcripts, and templates
-        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "images")))
-        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "logs")))
-        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "transcripts")))
-        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "templates")))
-        # Let's also make sure there is a users directory
         data_utils.ensure_dir_exists(self.users_dir)
-
-
+        data_utils.ensure_dir_exists(self.public_dir)
+        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Blueprints"))) # For storing blueprint json files
+        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Images"))) # For the gallery database and image directories
+        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Images", "Generated"))) # For generated images
+        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Images", "Imported"))) # For imported images
+        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Images", "Saved"))) # For saved images created in canvas mode
+        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Logs"))) # For storing verbose public log files by datetime
+        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Personas"))) # Contains directories for each persona
+        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Prompts"))) # Contains directories for each prompt type
+        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Prompts", "Grounding"))) # Contains directories for grounding prompts
+        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Prompts", "Image"))) # Contains directories for image prompts
+        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Prompts", "Persona"))) # Contains directories for persona prompts
+        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Prompts", "Context"))) # Contains directories for protocol prompts
 
     def create_user(self, name, role, input_password, api_key=None):
         """Creates a new user and adds them to the users database."""
@@ -95,8 +110,10 @@ class SessionManager:
         self.user_dir = os.path.join(self.users_dir, name)
         self.create_user_files()
 
+        # The best syntax for making a string all lower case is
+
          # Let's make a key vault for the user
-        vault_path = os.path.join(self.user_dir, f'{name}-vault.db')
+        vault_path = os.path.join(self.user_dir, f'{name.lower()}-vault.db')
         self.vault_engine = create_engine('sqlite:///' + vault_path)
         Base.metadata.create_all(self.vault_engine)
         Session = sessionmaker(bind=self.vault_engine)
@@ -115,8 +132,8 @@ class SessionManager:
     def create_user_files(self):
         """Creates a user's output directory."""
         data_utils.ensure_dir_exists(self.user_dir)
-        data_utils.ensure_dir_exists(str(os.path.join(self.user_dir, "logs")))
-        data_utils.ensure_dir_exists(str(os.path.join(self.user_dir, "transcripts")))
+        data_utils.ensure_dir_exists(str(os.path.join(self.user_dir, "Logs")))
+        data_utils.ensure_dir_exists(str(os.path.join(self.user_dir, "Transcripts")))
 
        
 
@@ -142,7 +159,7 @@ class SessionManager:
         self.user_dir = os.path.join(self.users_dir, name)
             
         self.users_session.commit()
-        vault_path = os.path.join(self.user_dir, f'{name}-vault.db')
+        vault_path = os.path.join(self.user_dir, f'{name.lower()}-vault.db')
         self.vault_engine = create_engine('sqlite:///' + vault_path)
         Base.metadata.create_all(self.vault_engine)
         Session = sessionmaker(bind=self.vault_engine)
@@ -200,6 +217,11 @@ class SessionManager:
         print("Closing database connection")
         if self.users_session is not None: self.users_session.close()
         if self.vault_session is not None: self.vault_session.close()
+        if self.gallery_session is not None: self.gallery_session.close()
+        if self.users_engine is not None: self.users_engine.dispose()
+        if self.vault_engine is not None: self.vault_engine.dispose()
+        if self.gallery_engine is not None: self.gallery_engine.dispose()
+        print("Database connection closed")
 
     def get_user_count(self):
         """Returns the number of users in the users database."""

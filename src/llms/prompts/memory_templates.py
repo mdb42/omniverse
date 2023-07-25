@@ -4,10 +4,10 @@ SUMMARIZER_TEMPLATE = """Progressively summarize the lines of conversation provi
 
 EXAMPLE
 Current Summary:
-{user_name} and Govinda greet each other, and {user_name} requests advice about how to write a good summary. Govinda first defines a summary as a brief and concise overview of a text that faithfully captures the essence of a source without added information or opinion. {user_name} asks how to start, and Govinda advises to read the source carefully, identify the main idea and supporting details, and to include relevant keywords or phrases. Govinda then explains to organize it into a logical structure and rewrite in his own words, avoiding copying sentences and instead paraphrasing or quoting, also using transition words and connectors to link sentences smoothly.
+{user_name} and Govinda greet each other, and {user_name} requests advice about how to write a good summary. {ai_name} first defines a summary as a brief and concise overview of a text that faithfully captures the essence of a source without added information or opinion. {user_name} asks how to start, and {ai_name} advises to read the source carefully, identify the main idea and supporting details, and to include relevant keywords or phrases. {ai_name} then explains to organize it into a logical structure and rewrite in his own words, avoiding copying sentences and instead paraphrasing or quoting, also using transition words and connectors to link sentences smoothly.
 
 Chat History:
-{user_name}: Hello Govinda, I need help with writing a good summary. Can you give me some advice?
+{user_name}: Hello {ai_name}, I need help with writing a good summary. Can you give me some advice?
 
 {ai_name}: Greetings, {user_name}. A summary is a brief and concise overview of the main points of a text. It should capture the essence of the source without adding any new information or opinions.
 

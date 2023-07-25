@@ -1,14 +1,14 @@
 from gui.components.user_creation_widget import Ui_Form as UserCreationWidget
 from src import resource_utils
-from PyQt6 import QtWidgets
-from PyQt6.QtCore import Qt
+
+from PyQt6.QtWidgets import QWidget
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QIcon
-from PyQt6 import QtCore
 
 
-class UserCreationWindow(QtWidgets.QWidget, UserCreationWidget):
-    user_created_signal = QtCore.pyqtSignal(bool)
-    window_closed_signal = QtCore.pyqtSignal(bool)
+class UserCreationWindow(QWidget, UserCreationWidget):
+    user_created_signal = pyqtSignal(bool)
+    window_closed_signal = pyqtSignal(bool)
 
     def __init__(self, parent=None, session=None):
         super(UserCreationWindow, self).__init__(parent)
@@ -75,6 +75,10 @@ class UserCreationWindow(QtWidgets.QWidget, UserCreationWidget):
         self.confirm_line_edit.setText("")
         self.api_key_line_edit.setText("")
         self.feedback_label.setText("User created successfully.")
+    
+    def closeEvent(self, event):
+        self.window_closed_signal.emit(True)
+        event.accept()
 
 
 
