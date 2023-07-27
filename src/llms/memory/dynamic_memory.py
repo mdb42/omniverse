@@ -1,5 +1,7 @@
 from typing import List, Dict, Any
 from datetime import datetime
+from src.logger_utils import create_logger
+from src import constants
 
 from langchain import BasePromptTemplate, LLMChain
 from langchain.schema import BaseMemory
@@ -19,6 +21,7 @@ KNOWLEDGE_HISTORY_LENGTH = 3
 SUMMARY_HISTORY_LENGTH = 3
 
 class DynamicMemory(BaseMemory, BaseModel):
+    logger = create_logger(__name__, constants.SYSTEM_LOG_FILE)
     """Memory class for storing information."""
     summary_llm: BaseLanguageModel
     entity_llm: BaseLanguageModel
@@ -48,6 +51,18 @@ class DynamicMemory(BaseMemory, BaseModel):
     memory_string: str = ""
     memory_key: str = "dynamic_memory"
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.logger.info("Dynamic Memory: Initializing")
+        self.session = kwargs.get('session', None)
+        self.ai_name = kwargs.get('ai_name', "Govinda")
+        self.setup()
+        self.logger.info("Dynamic Memory: Initialized")
+    
+    def setup(self):
+        self.logger.info("Dynamic Memory: Setting Up Dynamic Memory")
+        pass
+
     def clear(self):
         self.memory_string = ""
         self.current_summary = ""
@@ -74,7 +89,7 @@ class DynamicMemory(BaseMemory, BaseModel):
         self.memory_string = self.generate_new_memory()
 
     def preprocessing(self, input):
-        print("*****Preprocessing*****")
+        self.logger.info("Dynamic Memory: Preprocessing")
         self.current_input = input
         loop = asyncio.get_event_loop()
         try:
@@ -83,10 +98,10 @@ class DynamicMemory(BaseMemory, BaseModel):
                 self.generate_new_entities()
             ))
         except Exception as e:
-            print(f"An error occurred: {str(e)}")
+            self.logger.error(f"An error occurred: {str(e)}")
 
     def postprocessing(self, input):
-        print("******Postprocessing*****")
+        self.logger.info("Dynamic Memory: Postprocessing")
         self.current_input = input
         loop = asyncio.get_event_loop()
         try:
@@ -95,10 +110,10 @@ class DynamicMemory(BaseMemory, BaseModel):
                 self.generate_new_knowledge()
             ))
         except Exception as e:
-            print(f"An error occurred: {str(e)}")
+            self.logger.error(f"An error occurred: {str(e)}")
 
     async def generate_new_summary(self) -> str:
-        print("Generating new summary")
+        self.logger.info("Generating new summary")
         new_summary = "Default summary."
         summarizer_chain = LLMChain(llm=self.summary_llm, prompt=self.summarizer_prompt)
         if len(self.message_buffer) > SUMMARY_HISTORY_LENGTH:
@@ -108,10 +123,11 @@ class DynamicMemory(BaseMemory, BaseModel):
                                                       chat_history=self.get_last_k_messages(SUMMARY_HISTORY_LENGTH))
         self.previous_summary = self.current_summary
         self.current_summary = new_summary
+        self.logger.info("Summary generation complete")
         return new_summary
 
     def generate_new_chat_history(self) -> str:
-        print("Generating new chat history")
+        self.logger.info("Generating new chat history")
         new_chat_history = ""
         for message in self.message_buffer:
             speaker = message.get("speaker", "")
@@ -122,21 +138,19 @@ class DynamicMemory(BaseMemory, BaseModel):
         return new_chat_history
 
     async def generate_new_entities(self) -> str:
-        print("Generating new entities")
+        self.logger.info("Generating new entities")
         new_entities = "None"
-        print("Running entity chain")
         chain = LLMChain(llm=self.entity_llm, prompt=self.entity_extraction_prompt)
-        print("Entity chain created")
         if len(self.message_buffer) > ENTITY_HISTORY_LENGTH:
             new_entities = await chain.arun(user_name=self.session.current_user.display_name, 
                                             ai_name=self.ai_name, 
                                             history=self.get_last_k_messages(ENTITY_HISTORY_LENGTH), 
                                             input=self.current_input)
-            print("New entities: ", new_entities)
+        self.logger.info("New entity generation complete")
         return new_entities
 
     async def generate_new_sentiment_analysis(self) -> str:
-        print("Generating new sentiment analysis")
+        self.logger.info("Generating new sentiment analysis")
         new_sentiment_analysis = "None"
         chain = LLMChain(llm=self.sentiment_llm, prompt=self.sentiment_analysis_prompt)
         if len(self.message_buffer) > SENTIMENT_HISTORY_LENGTH:
@@ -144,24 +158,23 @@ class DynamicMemory(BaseMemory, BaseModel):
                                                       ai_name=self.ai_name, 
                                                       history=self.get_last_k_messages(SENTIMENT_HISTORY_LENGTH), 
                                                       input=self.current_input)
-            print("New sentiment analysis: ", new_sentiment_analysis)
+        self.logger.info("New sentiment analysis generation complete")
         return new_sentiment_analysis
 
     async def generate_new_knowledge(self) -> str:
-        print("Generating new knowledge triplets")
+        self.logger.info("Generating new knowledge triplets")
         new_knowledge = "None"
         chain = LLMChain(llm=self.knowledge_llm, prompt=self.knowledge_extraction_prompt)
-        print("New knowledge chain created")
         if len(self.message_buffer) > KNOWLEDGE_HISTORY_LENGTH:
             new_knowledge = await chain.arun(user_name=self.session.current_user.display_name, 
                                              ai_name=self.ai_name, 
                                              history=self.get_last_k_messages(KNOWLEDGE_HISTORY_LENGTH), 
                                              input=self.current_input)
-            print("New knowledge: ", new_knowledge)
+        self.logger.info("New knowledge triplets generation complete")
         return new_knowledge
 
     def add_message(self, role: str, content: str, speaker: str, time: datetime) -> None:
-        print("Adding message to buffer")
+        self.logger.info("Adding message to buffer")
         message = {"role": role, "content": content, "speaker": speaker, "time": time}
         if len(self.message_buffer) > MESSAGE_BUFFER_LENGTH:
             if self.message_buffer[0]["role"] == "system" and self.message_buffer[1]["role"] == "system":
@@ -172,7 +185,7 @@ class DynamicMemory(BaseMemory, BaseModel):
                 self.message_buffer.pop(1)
         self.session_messages.append(message)
         self.message_buffer.append(message)
-        print("Message added to buffer")
+        self.logger.info("Message added to buffer")
 
     def get_last_message(self) -> str:
         if len(self.session_messages) > 0:

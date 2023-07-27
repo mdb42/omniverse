@@ -6,6 +6,7 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QIcon
 import webbrowser
 import src.data.data_utils as data_utils
+from src.logger_utils import create_logger
 
 
 class LoginWindow(QWidget, LoginWidget):
@@ -19,7 +20,9 @@ class LoginWindow(QWidget, LoginWidget):
     def __init__(self, parent=None, session=None):
         """Initializes the login window, sets up the UI, and connects the signal and slots."""
         super(LoginWindow, self).__init__(parent)
-        self.session = session
+        self.logger = create_logger(__name__, constants.SYSTEM_LOG_FILE)
+        self.logger.info("Initializing Login Window")
+        self.session = session        
         self.setupUi(self)
         self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
         self.setWindowIcon(QIcon(resource_utils.load_icon("application-icon.ico")))
@@ -98,13 +101,12 @@ class LoginWindow(QWidget, LoginWidget):
 
     def log_exception(self, exception):
         # replace this with your logging system when ready
-        print(exception)
+        self.logger(exception)
 
 
     def create_new_user_button_clicked(self):
         """Slot for handling the event when the create new user button is clicked. It
             opens the new user creation window and closes the login window."""
-        print("Create New User Button Clicked")
         self.create_new_user_clicked_signal.emit(True)
         
     
@@ -140,6 +142,7 @@ class LoginWindow(QWidget, LoginWidget):
     
     def closeEvent(self, event):
         """Reimplemented from QWidget class to handle the close event in the login window."""
+        self.logger.info("Closing Login Window")
         self.closed_signal.emit(True)
         event.accept()
     

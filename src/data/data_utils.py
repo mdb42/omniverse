@@ -2,6 +2,9 @@ import os
 from cryptography.fernet import Fernet
 from src import constants
 import keyring
+from src.logger_utils import create_logger
+
+logger = create_logger(__name__, constants.SYSTEM_LOG_FILE)
 
 # TODO: If we should need to encrypt/decrypt data other than strings and booleans, we'll employ json encoding.
     
@@ -20,7 +23,7 @@ def write_file(base_path, relative_path, data):
         with open(full_path, "w") as f:
             f.write(data)
     except IOError as e:
-        print(f"Error writing to file {full_path}: {e}")
+        logger.error(f"Error writing to file {full_path}: {e}")
 
 def read_file(base_path, relative_path):
     """Reads data from a file."""
@@ -30,7 +33,7 @@ def read_file(base_path, relative_path):
             data = f.read()
         return data
     except IOError as e:
-        print(f"Error reading from file {full_path}: {e}")
+        logger.error(f"Error reading from file {full_path}: {e}")
         return None
 
 def write_encrypted_file(base_path, relative_path, data):
@@ -43,7 +46,7 @@ def write_encrypted_file(base_path, relative_path, data):
         with open(full_path, "wb") as f:
             f.write(encrypted_data)
     except (IOError, ValueError) as e:
-        print(f"Error writing encrypted data to file {full_path}: {e}")
+        logger.error(f"Error writing encrypted data to file {full_path}: {e}")
 
 def read_encrypted_file(base_path, relative_path):
     """Reads encrypted data from a file and returns the decrypted data."""
@@ -56,7 +59,7 @@ def read_encrypted_file(base_path, relative_path):
             raise ValueError("Decryption failed")
         return decrypted_data
     except (IOError, ValueError) as e:
-        print(f"Error reading encrypted data from file {full_path}: {e}")
+        logger.error(f"Error reading encrypted data from file {full_path}: {e}")
         return None
 
 def encrypt(data):
@@ -89,5 +92,5 @@ def decrypt(encrypted_data):
         else:
             return decrypted_data
     else:
-        print("Key not found in keyring")
+        logger.warning("Key not found in keyring")
         return None

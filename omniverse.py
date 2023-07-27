@@ -1,8 +1,8 @@
 import sys
+import os
 from gui import omniverse_main
 import keyring
 
-from src import resource_utils, constants
 from src.data.session_manager import SessionManager
 from src.audio.audio_manager import AudioManager
 from src.art.art_manager import ArtManager
@@ -25,13 +25,19 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QToolBar, QHBoxL
 from PyQt6.QtGui import QPixmap, QIcon, QTextCursor
 from PyQt6.QtCore import QTimer, Qt
 
+from src import constants, resource_utils
+from src.data import data_utils
+from src.logger_utils import create_logger
 
 class Omniverse(QMainWindow, omniverse_main.Ui_MainWindow):
     """The Omniverse class that handles user interaction in the main window."""
     def __init__(self, parent=None):
         super(Omniverse, self).__init__(parent)
+        data_utils.ensure_dir_exists('local')
+        data_utils.ensure_dir_exists('logs')
+        self.logger = create_logger(__name__, constants.SYSTEM_LOG_FILE)
+        self.logger.info("Starting Omniverse...")
         self.setupUi(self)
-
         self.login_window = None
         self.user_creation_window = None
         self.workspace_creation_window = None
@@ -40,6 +46,7 @@ class Omniverse(QMainWindow, omniverse_main.Ui_MainWindow):
         
         if keyring.get_password(constants.TITLE, constants.WORKSPACE) is None:
             self.status_bar.showMessage("Omniverse workspace not in keyring. New workspace creation required.")
+            self.logger.info("Omniverse workspace not in keyring. New workspace creation required.")
             self.workspace_creation_window = WorkspaceCreationWindow()
             self.workspace_creation_window.workspace_created_signal.connect(self.workspace_created)
             self.workspace_creation_window.closed_signal.connect(self.workspace_setup_window_closed)
@@ -98,14 +105,19 @@ class Omniverse(QMainWindow, omniverse_main.Ui_MainWindow):
     def preprocessing(self):
         """ Perform all preprocessing events, ending with the LLM preprocessor."""
         self.status_bar.showMessage("Grounding response...")
+        self.logger.info("Grounding response...")
+        self.modes[2].control_ui.knowledge_browser.clear()
+        self.modes[2].control_ui.summary_browser.clear()
         self.modes[2].control_ui.sentiment_browser.clear()
         self.modes[2].control_ui.entity_browser.clear()
         QApplication.processEvents()
         self.llm_manager.preprocessing(self.current_user_prompt)
+        self.status_bar.showMessage("Response Grounded.")
   
     def generate_response(self):
         """ Generate a response from the current user prompt."""
         self.status_bar.showMessage("Generating Response...")
+        self.logger.info("Generating Response...")
         self.current_user_prompt = self.chat_interface.chat_input_text_editor.toPlainText().rstrip()
         self.chat_interface.chat_output_browser.append("\n" + str(self.session.current_user.name + ": " + self.current_user_prompt + "\n"))
         self.chat_interface.chat_input_text_editor.clear()
@@ -116,15 +128,18 @@ class Omniverse(QMainWindow, omniverse_main.Ui_MainWindow):
         self.current_generated_response = self.llm_manager.generate_response()
         self.postprocessing()
         self.llm_manager.report_tokens()
+        self.logger.info("Response Generated.")
 
     def postprocessing(self):
         """ Perform all postprocessing events, ending with the LLM postprocessor."""
         self.status_bar.showMessage("Reflecting on response...")
+        self.logger.info("Reflecting on response...")
         if self.audio.text_to_speech:
             self.audio.play_text_to_speech(self.current_generated_response)
         QApplication.processEvents()
         self.llm_manager.postprocessing(self.current_user_prompt, self.current_generated_response)
         self.status_bar.showMessage("Response Complete.")
+        self.logger.info("Response Complete.")
     
     def set_cursor_to_end(self, browser):
         """Set the cursor to the end of the browser, preventing the llm from overwriting the chat history."""
@@ -136,6 +151,7 @@ class Omniverse(QMainWindow, omniverse_main.Ui_MainWindow):
     def generate_image(self):
         """ Generate an image from the current user prompt."""
         self.status_bar.showMessage("Generating Image...")
+        self.logger.info("Generating Image...")
         prompt = self.chat_interface.chat_input_text_editor.toPlainText().rstrip()
         QApplication.processEvents()
         pixmap = QPixmap()
@@ -146,8 +162,10 @@ class Omniverse(QMainWindow, omniverse_main.Ui_MainWindow):
                 if isinstance(mode.display, CanvasView):
                     mode.display.subject_pixmap = self.current_generated_image
             self.status_bar.showMessage("Image Generation Complete")
+            self.logger.info("Image Generation Complete")
         else:
             self.status_bar.showMessage("Image Generation Failed")
+            self.logger.info("Image Generation Failed")
 
     def toggle_text_to_speech(self):
         """ Toggle text to speech on and off."""
@@ -225,8 +243,10 @@ class Omniverse(QMainWindow, omniverse_main.Ui_MainWindow):
     def login_successful(self):
         """ Perform actions after a successful login."""
         self.status_bar.showMessage(f"Logged in as {self.session.current_user.name}.")
+        self.logger.info(f"Logged in as {self.session.current_user.name}.")
         self.session.setup()
         self.llm_manager.setup()
+        self.persona_manager.setup()
         if not self.isActiveWindow():
             self.activateWindow()
         self.raise_()
@@ -243,6 +263,7 @@ class Omniverse(QMainWindow, omniverse_main.Ui_MainWindow):
     def new_user_created(self):
         """ Perform actions after a new user is created."""
         self.status_bar.showMessage(f"New user created: {self.session.get_most_recent_user().name}.")
+        self.logger.info(f"New user created: {self.session.get_most_recent_user().name}.")
         self.user_creation_window.hide()
         self.login_start()
         if not self.isActiveWindow():
@@ -262,7 +283,9 @@ class Omniverse(QMainWindow, omniverse_main.Ui_MainWindow):
     def on_exit(self):
         """ Close the application. """
         self.status_bar.showMessage("Exiting the Omniverse...")
+        self.logger.info("Exiting the Omniverse...")
         self.session.close()
+        self.logger.info("Goodbye!")
         self.close()
     
     def workspace_setup_window_closed(self):

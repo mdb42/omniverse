@@ -9,6 +9,8 @@ from passlib.context import CryptContext
 
 from pathlib import Path
 import src.data.data_utils as data_utils
+from src.logger_utils import create_logger
+from src import constants
 
 # TODO: Implementing more granular user role management and permissions. Requires: user management widget
 # TODO: Adding more features related to key management, like updating or removing a key. Requires: user settings widget with key table
@@ -20,11 +22,13 @@ import src.data.data_utils as data_utils
 class SessionManager:
     """Manages the creation, reading, and writing of files and databases."""
     def __init__(self):
+        self.logger = create_logger(__name__, constants.SYSTEM_LOG_FILE)
+        self.logger.info("Initializing Session Manager")
         self.start_time = datetime.now()
         # If the local directory exists, use it. Otherwise, use the user's documents directory.
         self.base_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'local')
         if not os.path.exists(self.base_dir):
-            self.base_dir = Path.home() / 'Documents' / 'Omniverse'   
+            self.base_dir = Path.home() / 'Documents' / constants.TITLE   
             data_utils.ensure_dir_exists(self.base_dir)
 
         self.public_dir = os.path.join(self.base_dir, 'Public')
@@ -40,13 +44,15 @@ class SessionManager:
         self.vault_session = None # The session for the user's key vault database
 
         self.gallery_path = os.path.join(self.public_dir, 'Images', 'gallery.db') # The path to the gallery database
+        data_utils.ensure_dir_exists(os.path.join(self.public_dir, 'Images')) # Ensure the images directory exists
         self.gallery_engine = create_engine('sqlite:///' + self.gallery_path) # The engine for the gallery database
         Base.metadata.create_all(self.gallery_engine) # Create the gallery database
         Session = sessionmaker(bind=self.gallery_engine) # Create a session for the gallery database
         self.gallery_session = Session() # The session for the gallery database
         
-        self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")        
         self.setup()
+        self.logger.info("Session Manager initialized")
 
     def setup(self):
         """Sets up the data manager by creating the base directory and users database."""
@@ -80,7 +86,7 @@ class SessionManager:
 
     def create_user(self, name, role, input_password, api_key=None):
         """Creates a new user and adds them to the users database."""
-        print("Creating user")
+        self.logger.info(f"Creating user {name}")
         if not name or not role or not input_password:
             raise ValueError("All fields are required")
         
@@ -139,17 +145,17 @@ class SessionManager:
 
     def login_user(self, name, password, remember_me):
         if not name or not password:
-            print("Name and password are required")
+            self.logger.warning("Name and password are required")
             return False
                 
         user = self.users_session.query(User).filter_by(name=name).first()
         if not user:
-            print(f"User {name} does not exist")
+            self.logger.warning(f"User {name} does not exist")
             return False
         
         # Check if the user is not remembered or if the password is incorrect
         if not data_utils.decrypt(user.remember_me) and not self.pwd_context.verify(password, data_utils.decrypt(user.password)):
-            print("Incorrect password")
+            self.logger.warning(f"Incorrect password for user {name}")
             return False
             
         user.online = True
@@ -214,14 +220,14 @@ class SessionManager:
         self.users_session.commit()
 
     def close(self):
-        print("Closing database connection")
+        self.logger.info("Closing database connection")
         if self.users_session is not None: self.users_session.close()
         if self.vault_session is not None: self.vault_session.close()
         if self.gallery_session is not None: self.gallery_session.close()
         if self.users_engine is not None: self.users_engine.dispose()
         if self.vault_engine is not None: self.vault_engine.dispose()
         if self.gallery_engine is not None: self.gallery_engine.dispose()
-        print("Database connection closed")
+        self.logger.info("Database connection closed")
 
     def get_user_count(self):
         """Returns the number of users in the users database."""

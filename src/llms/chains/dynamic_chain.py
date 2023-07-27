@@ -7,8 +7,12 @@ from src.llms.prompts.protocol_templates import SESSION_TEMPLATE
 from src.llms.prompts.protocol_templates import STORYTELLER_TEMPLATE
 from src.llms.prompts.protocol_templates import TUTOR_TEMPLATE
 
+from src.logger_utils import create_logger
+from src import constants
+
 
 class DynamicChain(LLMChain):
+    logger = create_logger(__name__, constants.SYSTEM_LOG_FILE)
     internal_chains: list = []
     internal_prompt: str = ''
     current_protocol: str = ''
@@ -25,9 +29,8 @@ class DynamicChain(LLMChain):
         self.current_tone = "Natural"
 
     def set_protocol(self, role):
-        print("Setting chain role to "+role)
+        self.logger.info(f"Setting chain role to {role}")
         self.current_protocol = role
-        # print("Internal role: " +self.current_role)
         if self.current_protocol== "Assistant":
             self.template = ASSISTANT_TEMPLATE
         elif self.current_protocol== "Persona":

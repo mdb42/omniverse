@@ -4,18 +4,20 @@ from PIL import Image
 from io import BytesIO
 import os
 from datetime import datetime
+from src.logger_utils import create_logger
+from src import constants
 
 class ArtManager:
     def __init__(self, *args, **kwargs):
+        self.logger = create_logger(__name__, constants.SYSTEM_LOG_FILE)
+        self.logger.info("ArtManager: Initializing")
         self.session = kwargs.get('session', None)
-        print(f"ArtManager session: {self.session}")
         self.generator = DALLEGenerator(session=self.session)
         self.generated_image_data = None
 
     def generate_image(self, prompt: str):
-        print(f"Generating image with prompt: {prompt}")
+        self.logger.info(f"ArtManager: Generating Image with prompt: {prompt}")
         self.generated_image_data = self.generator.generate_image(prompt)
-        # print(f"Image generation complete. Image data: {self.generated_image_data}")
         if self.generated_image_data is not None:
             print("Saving image to file (1/2)...")
             self.save_image_to_file()

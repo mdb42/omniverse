@@ -8,9 +8,12 @@ from src.llms.chains.dynamic_chain import DynamicChain
 from src.llms.memory.dynamic_memory import DynamicMemory
 from src.llms.prompts.protocol_templates import ASSISTANT_TEMPLATE
 import src.data.data_utils as data_utils
+from src.logger_utils import create_logger
+from src import constants
 
 class LLMManager:
     def __init__(self, *args, **kwargs):
+        self.logger = create_logger(__name__, constants.SYSTEM_LOG_FILE)
         self.session = kwargs.get('session', None)
         self.browser_callbacks = kwargs.get('browser_callbacks', None)
         self.assistant_id = kwargs.get('assistant_id', None)
@@ -51,10 +54,10 @@ class LLMManager:
         self.davinci_llm = None
         self.davinci_chain = None
         # self.setup()
-        print("LLM Manager: Initialized")
+        self.logger.info("LLM Manager: Initialized")
 
     def setup(self):
-        print("LLM Manager: Setting Up LLMs")
+        self.logger.info("LLM Manager: Setting Up")
         self.sentiment_llm = ChatOpenAI(streaming=True,
                                         callback_manager=self.browser_callbacks["sentiment"],
                                         verbose=True,
@@ -116,40 +119,39 @@ class LLMManager:
         self.davinci_chain.set_protocol(self.current_protocol)
 
     def preprocessing(self, current_input: str):
-        print("LLM Manager Preprocessing")
+        self.logger.info("LLM Manager: Preprocessing")
         self.current_input = current_input
         self.memory.preprocessing(self.current_input)
         self.current_sentiment = self.memory.current_sentiment
         self.current_entities = self.memory.current_entities
 
     def generate_response(self):
-        print("LLM Manager: Generating Response")
-        print("Input: " + self.current_input)
+        self.logger.info("LLM Manager: Generating Response")
+        self.logger.info("Input: " + self.current_input)
         if self.current_llm_model == "gpt-3.5-turbo":
-            print("Running Chat Chain")
+            self.logger.info("Running Chat Chain")
             self.current_output = self.chat_chain.run(input=self.current_input,
                                                       ai_name=self.assistant_id,
                                                       user_name=self.session.current_user.display_name,
                                                       chat_lines=self.current_chat_history_string,
                                                       sentiment_analysis=self.current_sentiment,
                                                       summary=self.current_summary)
-            print("Chat Chain Output: " + self.current_output)
+            self.logger.info("Chat Chain Output: " + self.current_output)
         elif self.current_llm_model == "text-davinci-003":
-            print("Running Davinci Chain")
+            self.logger.info("Running Davinci Chain")
             self.current_output = self.davinci_chain.run(input=self.current_input,
                                                          ai_name=self.assistant_id,
                                                          user_name=self.session.current_user.display_name,
                                                          chat_lines=self.current_chat_history_string,
                                                          sentiment_analysis=self.current_sentiment,
                                                          summary=self.current_summary)
-            print("Davinci Chain Output: " + self.current_output)   
+            self.logger.info("Davinci Chain Output: " + self.current_output)
 
-        print("Output: " + self.current_output)
-        print("LLM Manager: Response Generated")
+        self.logger.info("Output: ""Response Generation Complete")
         return self.current_output
 
     def postprocessing(self, current_input: str, current_output: str):
-        print("LLM Manager: Postprocessing")
+        self.logger.info("LLM Manager: Postprocessing")
         self.current_output = current_output
         self.current_input = current_input
         self.memory.current_output = self.current_output
@@ -161,15 +163,15 @@ class LLMManager:
         self.memory.add_message("assistant", self.current_output, self.assistant_id, datetime.now())
 
     def report_tokens(self):
-        print("LLM Manager: Reporting Tokens")
+        self.logger.info("LLM Manager: Reporting Tokens")
         self.summary_token_count = self.get_token_count(self.current_summary)
         self.prompt_token_count = self.get_token_count(self.current_prompt)
         self.output_token_count = self.get_token_count(self.current_output)
         self.total_token_count = self.prompt_token_count + self.output_token_count
-        print("Prompt Token Count: " + str(self.prompt_token_count))
-        print("Summary Token Count: " + str(self.summary_token_count))
-        print("Response Token Count: " + str(self.output_token_count))
-        print("Total Token Count: " + str(self.total_token_count))
+        self.logger.info("Prompt Token Count: " + str(self.prompt_token_count))
+        self.logger.info("Summary Token Count: " + str(self.summary_token_count))
+        self.logger.info("Response Token Count: " + str(self.output_token_count))
+        self.logger.info("Total Token Count: " + str(self.total_token_count)) # Not counting other subtasks yet
 
     def get_token_count(self, prompt: str) -> int:
         encoding_model = 'p50k_base'
