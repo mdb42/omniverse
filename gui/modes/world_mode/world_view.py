@@ -8,7 +8,7 @@ from PyQt6.QtCore import Qt
 SCENE_RECT_MULTIPLE = 2
 ZOOM_LIMIT = 5
 
-class PresentationView(QtWidgets.QGraphicsView):
+class WorldView(QtWidgets.QGraphicsView):
     animating = True
     undoAvailable = QtCore.pyqtSignal(bool)
     redoAvailable = QtCore.pyqtSignal(bool)

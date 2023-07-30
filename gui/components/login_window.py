@@ -1,5 +1,6 @@
 from gui.components.login_widget import Ui_Form as LoginWidget
-from src import resource_utils, constants
+from gui import gui_utils
+from src import constants
 
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtCore import Qt, pyqtSignal
@@ -25,16 +26,16 @@ class LoginWindow(QWidget, LoginWidget):
         self.session = session        
         self.setupUi(self)
         self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
-        self.setWindowIcon(QIcon(resource_utils.load_icon("application-icon.ico")))
+        self.setWindowIcon(QIcon(gui_utils.load_icon("application-icon.ico")))
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
         self.setFixedSize(self.size())
         self.setWindowTitle("Login")
         self.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint, False)
         self.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, False)
 
-        self.twitter_button.setIcon(QIcon(resource_utils.load_icon("twitter-icon.ico")))
-        self.discord_button.setIcon(QIcon(resource_utils.load_icon("discord-icon.ico")))
-        self.github_button.setIcon(QIcon(resource_utils.load_icon("github-icon.ico")))
+        self.twitter_button.setIcon(QIcon(gui_utils.load_icon("twitter-icon.ico")))
+        self.discord_button.setIcon(QIcon(gui_utils.load_icon("discord-icon.ico")))
+        self.github_button.setIcon(QIcon(gui_utils.load_icon("github-icon.ico")))
         self.github_button.clicked.connect(self.github_button_clicked)
         self.discord_button.clicked.connect(self.discord_button_clicked)
         self.twitter_button.clicked.connect(self.twitter_button_clicked)

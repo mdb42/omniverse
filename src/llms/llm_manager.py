@@ -23,7 +23,7 @@ class LLMManager:
         self.current_output = ""
         self.current_prompt = ""
 
-        self.protocols = ["Assistant", "Tutor", "Storyteller", "Persona"]
+        self.protocols = ["Assistant", "Storyteller", "Tutor"]
         self.current_protocol = "Assistant"
         self.llm_models = ["gpt-3.5-turbo", "text-davinci-003"]
         self.current_llm_model = "gpt-3.5-turbo"

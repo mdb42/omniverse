@@ -4,7 +4,7 @@ from PyQt6 import QtWidgets, QtGui, QtCore
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap, QImage
 from PyQt6.QtWidgets import QHBoxLayout, QGridLayout, QToolButton, QPushButton, QWidget
-from src import resource_utils
+from gui import gui_utils
 
 class ModeBase(ABC):
     def __init__(self, *args, **kwargs):
@@ -15,7 +15,7 @@ class ModeBase(ABC):
 
         # Every mode will have a button to activate it
         self.icon_filename = kwargs.get('icon_filename', "application-icon.ico")
-        self.icon_pixmap = resource_utils.load_icon(self.icon_filename)
+        self.icon_pixmap = gui_utils.load_icon(self.icon_filename)
         self.button = QtWidgets.QPushButton()
         self.button.setCheckable(True)
         self.button.setIcon(QtGui.QIcon(self.icon_pixmap))

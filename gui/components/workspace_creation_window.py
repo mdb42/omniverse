@@ -1,5 +1,6 @@
 from gui.components.workspace_creation_widget import Ui_Form as WorkspaceCreationWidget
-from src import resource_utils, constants
+from gui import gui_utils
+from src import constants
 import keyring
 
 from PyQt6.QtWidgets import QApplication, QWidget, QLineEdit
@@ -16,16 +17,16 @@ class WorkspaceCreationWindow(QWidget, WorkspaceCreationWidget):
         super(WorkspaceCreationWindow, self).__init__(parent)
         self.setupUi(self)
         self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
-        self.setWindowIcon(QIcon(resource_utils.load_icon("application-icon.ico")))
+        self.setWindowIcon(QIcon(gui_utils.load_icon("application-icon.ico")))
         self.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint, False)
         self.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, False)
         self.setFixedSize(self.size())
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
 
-        self.copy_to_clipboard_button.setIcon(QIcon(resource_utils.load_icon("clipboard-icon.ico")))
-        self.random_key_button.setIcon(QIcon(resource_utils.load_icon("refresh-icon.ico")))
-        self.visibility_on_icon = QIcon(resource_utils.load_icon("visibility-on-icon.ico"))        
-        self.visibility_off_icon = QIcon(resource_utils.load_icon("visibility-off-icon.ico"))
+        self.copy_to_clipboard_button.setIcon(QIcon(gui_utils.load_icon("clipboard-icon.ico")))
+        self.random_key_button.setIcon(QIcon(gui_utils.load_icon("refresh-icon.ico")))
+        self.visibility_on_icon = QIcon(gui_utils.load_icon("visibility-on-icon.ico"))        
+        self.visibility_off_icon = QIcon(gui_utils.load_icon("visibility-off-icon.ico"))
         self.echo_toggle_button.setIcon(self.visibility_off_icon)
         self.continue_button.clicked.connect(self.continue_button_clicked)
         self.random_key_button.clicked.connect(self.random_key_button_clicked)

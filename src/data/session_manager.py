@@ -1,7 +1,7 @@
 import os
 import sys
 from datetime import datetime
-from src.data.schema import User, Base, SecureKey, GeneratedImage
+from src.data.schema import User, Base, SecureKey, GalleryImage
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -76,13 +76,13 @@ class SessionManager:
         data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Images", "Generated"))) # For generated images
         data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Images", "Imported"))) # For imported images
         data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Images", "Saved"))) # For saved images created in canvas mode
-        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Logs"))) # For storing verbose public log files by datetime
         data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Personas"))) # Contains directories for each persona
         data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Prompts"))) # Contains directories for each prompt type
         data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Prompts", "Grounding"))) # Contains directories for grounding prompts
         data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Prompts", "Image"))) # Contains directories for image prompts
         data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Prompts", "Persona"))) # Contains directories for persona prompts
         data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Prompts", "Context"))) # Contains directories for protocol prompts
+        data_utils.ensure_dir_exists(str(os.path.join(self.public_dir, "Worlds"))) # Contains directories for each world
 
     def create_user(self, name, role, input_password, api_key=None):
         """Creates a new user and adds them to the users database."""
@@ -138,7 +138,6 @@ class SessionManager:
     def create_user_files(self):
         """Creates a user's output directory."""
         data_utils.ensure_dir_exists(self.user_dir)
-        data_utils.ensure_dir_exists(str(os.path.join(self.user_dir, "Logs")))
         data_utils.ensure_dir_exists(str(os.path.join(self.user_dir, "Transcripts")))
 
        

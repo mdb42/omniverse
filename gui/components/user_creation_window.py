@@ -1,5 +1,5 @@
 from gui.components.user_creation_widget import Ui_Form as UserCreationWidget
-from src import resource_utils
+from gui import gui_utils
 
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtCore import Qt, pyqtSignal
@@ -15,7 +15,7 @@ class UserCreationWindow(QWidget, UserCreationWidget):
         self.session = session
         self.setupUi(self)
         self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
-        self.setWindowIcon(QIcon(resource_utils.load_icon("application-icon.ico")))
+        self.setWindowIcon(QIcon(gui_utils.load_icon("application-icon.ico")))
         self.setWindowFlag(Qt.WindowType.WindowMinimizeButtonHint, False)
         self.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, False)
         self.setFixedSize(self.size())

@@ -12,12 +12,16 @@ from gui.modes.canvas_mode.image_action import ImageAction
 from gui.modes.canvas_mode.undo_action import UndoAction
 from gui.modes.canvas_mode.redo_action import RedoAction
 
+from src.logger_utils import create_logger
+from src import constants
+
 
 # Constants
 SCENE_RECT_MULTIPLE = 2
 ZOOM_LIMIT = 5
 
 class CanvasView(QtWidgets.QGraphicsView):
+    logger = create_logger(__name__, constants.SYSTEM_LOG_FILE)
 
     animating = True
 
@@ -160,7 +164,6 @@ class CanvasView(QtWidgets.QGraphicsView):
         self.redo_available.emit(len(self.redo_stack) > 0)
 
     def undo(self):
-        print("Undo")
         if self.undo_stack:
             action_to_undo = self.undo_stack.pop()
             self.undo_available.emit(len(self.undo_stack) > 0)
@@ -177,7 +180,6 @@ class CanvasView(QtWidgets.QGraphicsView):
                 self.redo_stack.append({"item": action_to_undo["item"], "action": "erased"})
 
     def redo(self):
-        print("Redo")
         if self.redo_stack:
             action_to_redo = self.redo_stack.pop()
             self.redo_available.emit(len(self.redo_stack) > 0)
@@ -270,14 +272,11 @@ class CanvasView(QtWidgets.QGraphicsView):
             self.setCursor(self.draw_actions[self.tool_index].cursor)
         else:
             self.setCursor(Qt.CursorShape.ArrowCursor)
-        print("Tool set to: ", self.draw_actions[self.tool_index].name)
   
     def set_color(self, color):
-        print("Setting color to: ", color)
         self.stroke_color = color
     
     def set_mode(self):
-        print("Setting canvas mode")
         if self.draw_actions[self.tool_index].persistent_cursor:
             self.setCursor(self.draw_actions[self.tool_index].cursor)
         else:
@@ -287,9 +286,7 @@ class CanvasView(QtWidgets.QGraphicsView):
         self.scene().advance()
 
     def add_image(self, pixmap):
-            print("Adding image to scene.")
             pixmap_item = QGraphicsPixmapItem(pixmap)
             self.additive_action(pixmap_item)
-            print("Added image to active Canvas.")
 
 

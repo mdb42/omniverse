@@ -24,8 +24,8 @@ class SecureKey(Base):
     created_at = Column(DateTime)
     last_used = Column(DateTime)
 
-class GeneratedImage(Base):
-    __tablename__ = 'generated_images'
+class GalleryImage(Base):
+    __tablename__ = 'gallery_images'
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True)
     file_path = Column(String)

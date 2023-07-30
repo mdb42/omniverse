@@ -2,7 +2,6 @@ from langchain import PromptTemplate
 from langchain.chains.llm import LLMChain
 
 from src.llms.prompts.protocol_templates import ASSISTANT_TEMPLATE
-from src.llms.prompts.protocol_templates import PERSONA_TEMPLATE
 from src.llms.prompts.protocol_templates import SESSION_TEMPLATE
 from src.llms.prompts.protocol_templates import STORYTELLER_TEMPLATE
 from src.llms.prompts.protocol_templates import TUTOR_TEMPLATE
@@ -33,8 +32,6 @@ class DynamicChain(LLMChain):
         self.current_protocol = role
         if self.current_protocol== "Assistant":
             self.template = ASSISTANT_TEMPLATE
-        elif self.current_protocol== "Persona":
-            self.template = PERSONA_TEMPLATE
         elif self.current_protocol== "Session":
             self.template = SESSION_TEMPLATE
         elif self.current_protocol== "Storyteller":

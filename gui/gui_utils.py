@@ -1,5 +1,4 @@
-# utils.py
-import os
+
 from importlib.resources import files
 from PyQt6.QtGui import QImage, QPixmap, QCursor
 from PyQt6 import QtCore

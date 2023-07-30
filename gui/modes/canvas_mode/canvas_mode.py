@@ -10,6 +10,8 @@ from gui.modes.canvas_mode.new_file_action import NewFileAction
 from gui.modes.canvas_mode.save_file_action import SaveFileAction
 
 from PyQt6.QtWidgets import QButtonGroup
+from src.logger_utils import create_logger
+from src import constants
 
 class CanvasMode(ModeBase):
     def __init__(self, parent):   
@@ -19,6 +21,7 @@ class CanvasMode(ModeBase):
                          icon_filename="mode-canvas.ico",
                          display= CanvasView(),
                          control_ui= CanvasControlUI())
+        self.logger = create_logger(__name__, constants.SYSTEM_LOG_FILE)
 
     def set_mode(self):        
         self.display.set_canvas_mode()
@@ -125,20 +128,17 @@ class CanvasMode(ModeBase):
         self.display.set_draw_tool(self.draw_action_button_group.checkedId())
 
     def new_file_handler(self):
-        print("New File")
         self.display.clear()
     
     def open_file_handler(self):
-        print("Open File")
         file_name = QtWidgets.QFileDialog.getOpenFileName(self.parent, "Open File", "", "Image Files (*.png *.jpg *.bmp)")
         if file_name[0]:
-            print("Attempting to open file: ", file_name[0])
+            self.logger.info("Attempting to open file: %s", file_name[0])
         
     def save_file_handler(self):
-        print("Save File")
         file_name = QtWidgets.QFileDialog.getSaveFileName(self.parent, "Save File", "", "Image Files (*.png *.jpg *.bmp)")
         if file_name[0]:
-            print("Attempting to save file: ", file_name[0])
+            self.logger.info("Attempting to save file: %s", file_name[0])
 
 
         

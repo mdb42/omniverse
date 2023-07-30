@@ -13,6 +13,7 @@ class PersonaManager:
         self.personas_dir = os.path.join(self.session.public_dir, "Personas")
         self.personas = self.create_workspace_personas()
         self.logger.info("Persona Manager: Initialized")
+        self.current_responder = self.personas[0]
 
     def setup(self):
         """Setup Persona Manager and all Personas, called upon login."""
@@ -49,5 +50,20 @@ class PersonaManager:
                 # Log any exceptions that occur
                 self.logger.error(f"Persona Factory: Error reading from Persona JSON file {json_path} : {e}") 
         return persona
+    
+    def get_persona_names(self):
+        """Get a list of Persona names."""
+        names = []
+        for persona in self.personas:
+            names.append(persona.name)
+        return names
+    
+    def set_current_responder(self, name):
+        """Set the current responder."""
+        for persona in self.personas:
+            if persona.name == name:
+                self.current_responder = persona
+                return True
+        return False
 
     
